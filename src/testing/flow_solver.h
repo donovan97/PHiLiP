@@ -24,6 +24,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/explicit_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
+#include "flow_solver_cases/flow_solver_case_base.h"
 #include "flow_solver_cases/periodic_cube_flow.h"
 #include "flow_solver_cases/1D_burgers_rewienski_snapshot.h"
 #include "flow_solver_cases/1d_burgers_viscous_snapshot.h"
@@ -45,13 +46,13 @@ class FlowSolver : public TestsBase
 {
 public:
     /// Constructor.
-    FlowSolver(const Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCaseBase<dim, nstate>>);
+    FlowSolver(const Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>>);
     
     /// Destructor
     ~FlowSolver() {};
 
     /// Pointer to Flow Solver Case
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
+    std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 
     /// Runs the test (i.e. flow solver)
     int run_test () const;

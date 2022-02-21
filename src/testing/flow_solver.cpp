@@ -7,7 +7,7 @@ namespace Tests {
 // FLOW SOLVER TEST CASE -- What runs the test
 //=========================================================
 template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case)
+FlowSolver<dim, nstate>::FlowSolver(const PHiLiP::Parameters::AllParameters *const parameters_input, std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>> flow_solver_case)
 : TestsBase::TestsBase(parameters_input)
 , flow_solver_case(flow_solver_case)
 , initial_condition_function(InitialConditionFactory<dim,double>::create_InitialConditionFunction(parameters_input, nstate))
@@ -116,17 +116,17 @@ FlowSolverFactory<dim,nstate>
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
     if (flow_type == FlowCaseEnum::taylor_green_vortex){
         if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlowSolverCases::PeriodicCubeFlow<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
         }
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot){
         if constexpr (dim==1 && nstate==dim) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersViscousSnapshot<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlowSolverCases::BurgersViscousSnapshot<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
         }
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
         if constexpr (dim==1 && nstate==dim){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCases::FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<FlowSolverCases::BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case);
         }
     } else {

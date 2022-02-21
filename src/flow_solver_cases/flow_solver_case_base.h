@@ -10,7 +10,7 @@
 #include <deal.II/distributed/tria.h>
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolverCases {
 
 #if PHILIP_DIM==1
 using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -27,7 +27,7 @@ public:
     FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    virtual ~FlowSolverCaseBase() = 0;
+    virtual ~FlowSolverCaseBase() {};
 
 public:
 

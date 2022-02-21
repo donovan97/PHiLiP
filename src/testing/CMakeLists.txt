@@ -1,4 +1,3 @@
-
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
@@ -22,10 +21,6 @@ set(TESTS_SOURCE
     reduced_order.cpp
     reduced_order_pod_adaptation.cpp
     finite_difference_sensitivity.cpp
-    flow_solver_cases/flow_solver_case_base.cpp
-    flow_solver_cases/periodic_cube_flow.cpp
-    flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
-    flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver.cpp
     dual_weighted_residual_mesh_adaptation.cpp)
 
@@ -48,6 +43,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     string(CONCAT PODLib POD_${dim}D)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
+    string(CONCAT FlowCasesLib FlowCases_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -59,6 +55,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${OptimizationLib})
     target_link_libraries(${TestsLib} ${PODLib})
     target_link_libraries(${TestsLib} ${InitialConditionsLib})
+    target_link_libraries(${TestsLib} ${FlowCasesLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -76,4 +73,5 @@ foreach(dim RANGE 1 3)
     unset(OptimizationLib)
     unset(PODLib)
     unset(InitialConditionsLib)
+    unset(FlowCasesLib)
 endforeach()

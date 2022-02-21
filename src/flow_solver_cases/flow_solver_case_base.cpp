@@ -1,7 +1,7 @@
 #include "flow_solver_case_base.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolverCases {
 
 template<int dim, int nstate>
 FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -50,9 +50,13 @@ void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
 {
     // do nothing by default
 }
-
+#if PHILIP_DIM==1
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM==3
 template class FlowSolverCaseBase<PHILIP_DIM,PHILIP_DIM+2>;
+#endif
 
 }
 }

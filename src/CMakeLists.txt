@@ -15,6 +15,7 @@ add_subdirectory(optimization)
 add_subdirectory(operators)
 add_subdirectory(reduced_order)
 add_subdirectory(testing)
+add_subdirectory(flow_solver_cases)
 
 foreach(dim RANGE 1 3)
 

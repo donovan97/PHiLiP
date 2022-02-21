@@ -10,9 +10,18 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 #include "flow_solver_case_base.h"
+#include <deal.II/base/function.h>
+#include <stdlib.h>
+#include <iostream>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include "physics/physics_factory.h"
+#include "mesh/grids/straight_periodic_cube.hpp"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolverCases {
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -62,6 +71,6 @@ protected:
     double integrand_l2_error_initial_condition(const std::array<double,nstate> &soln_at_q, const dealii::Point<dim> qpoint) const;
 };
 
-} // Tests namespace
+}
 } // PHiLiP namespace
 #endif

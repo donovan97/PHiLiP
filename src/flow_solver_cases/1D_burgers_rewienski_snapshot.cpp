@@ -1,21 +1,8 @@
 #include "1D_burgers_rewienski_snapshot.h"
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
-#include <deal.II/base/table_handler.h>
-#include <deal.II/grid/grid_generator.h>
-#include <deal.II/lac/vector.h>
-#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolverCases {
 
 template <int dim, int nstate>
 BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)

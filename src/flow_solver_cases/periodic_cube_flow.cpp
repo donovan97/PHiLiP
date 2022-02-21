@@ -1,19 +1,8 @@
 #include "periodic_cube_flow.h"
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
-#include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/fe/fe_values.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
-#include "mesh/grids/straight_periodic_cube.hpp"
-#include <deal.II/base/table_handler.h>
 
 namespace PHiLiP {
 
-namespace Tests {
+namespace FlowSolverCases {
 //=========================================================
 // TURBULENCE IN PERIODIC CUBE DOMAIN
 //=========================================================

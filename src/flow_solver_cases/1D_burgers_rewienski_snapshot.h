@@ -10,9 +10,20 @@
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 #include "flow_solver_case_base.h"
+#include <deal.II/base/function.h>
+#include <stdlib.h>
+#include <iostream>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/fe/fe_values.h>
+#include "physics/physics_factory.h"
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/lac/vector.h>
+#include "linear_solver/linear_solver.h"
 
 namespace PHiLiP {
-namespace Tests {
+namespace FlowSolverCases {
 
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -35,17 +46,17 @@ protected:
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
 
-    /// Virtual function to generate the grid
+    /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
-    /// Virtual function to write unsteady snapshot data to table
+    /// Function to write unsteady snapshot data to table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) const override;
 
-    /// Virtual function for postprocessing when solving for steady state
+    /// Function for postprocessing when solving for steady state
     void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
 
 };
