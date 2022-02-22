@@ -30,6 +30,7 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
+    /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -101,6 +102,97 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
+     */
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
+    flow_solver_implicit->ode_solver->allocate_ode_system();
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(flow_solver_standard->dg);
+    flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
+    flow_solver_standard->ode_solver->allocate_ode_system();
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_expanded = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>>(flow_solver_expanded->dg);
+    flow_solver_expanded->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_expanded->dg, pod_expanded);
+    flow_solver_expanded->ode_solver->allocate_ode_system();
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_extrapolated = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    std::shared_ptr<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>> pod_extrapolated = std::make_shared<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>>(flow_solver_extrapolated->dg);
+    flow_solver_extrapolated->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_extrapolated->dg, pod_extrapolated);
+    flow_solver_extrapolated->ode_solver->allocate_ode_system();
+
+    /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+    /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )
+     *Refer to section 6.1 in "The GNAT method for nonlinear model reduction: Effective implementation and application to computational ﬂuid dynamics and turbulent ﬂows"
+     *Authors: Kevin Carlberg, Charbel Farhat, ulien Cortial,  David Amsallem
+     *Journal of Computational Physics, 2013
+     */
+
+    double finalTime = all_parameters->flow_solver_param.final_time;
+
+    const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/all_parameters->ode_solver_param.initial_time_step));
+    const double constant_time_step = finalTime/number_of_time_steps;
+
+    pcout << " Advancing solution by " << finalTime << " time units, using "
+          << number_of_time_steps << " iterations of size dt=" << constant_time_step << " ... " << std::endl;
+
+    double standard_error_norm_sum = 0;
+    double expanded_error_norm_sum = 0;
+    double extrapolated_error_norm_sum = 0;
+
+    unsigned int current_iteration = 0;
+
+    std::ofstream out_file("expandedbasis.txt");
+    unsigned int precision = 7;
+    pod_expanded->getPODBasis()->print(out_file, precision);
+
+    std::ofstream out_file2("standardbasis.txt");
+    pod_standard->getPODBasis()->print(out_file2, precision);
+
+
+    while (current_iteration < number_of_time_steps)
+    {
+        pcout << " ********************************************************** "
+              << std::endl
+              << " Iteration: " << current_iteration + 1
+              << " out of: " << number_of_time_steps
+              << std::endl;
+
+        const bool pseudotime = false;
+        flow_solver_implicit->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_standard->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_expanded->ode_solver->step_in_time(constant_time_step, pseudotime);
+        flow_solver_extrapolated->ode_solver->step_in_time(constant_time_step, pseudotime);
+
+        dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> expanded_solution(flow_solver_expanded->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> extrapolated_solution(flow_solver_extrapolated->dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
+
+        standard_error_norm_sum = standard_error_norm_sum + ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
+        expanded_error_norm_sum = expanded_error_norm_sum + (((expanded_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());
+        extrapolated_error_norm_sum = extrapolated_error_norm_sum + (((extrapolated_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());
+
+        pcout << (double)((standard_solution).l2_norm()/implicit_solution.l2_norm()) << std::endl;
+        pcout << (double)((expanded_solution).l2_norm()/implicit_solution.l2_norm()) << std::endl;
+        pcout << (double)((extrapolated_solution).l2_norm()/implicit_solution.l2_norm()) << std::endl;
+        current_iteration++;
+    }
+
+    double standard_error = (1/(double)number_of_time_steps) * standard_error_norm_sum;
+    double expanded_error = (1/(double)number_of_time_steps) * expanded_error_norm_sum;
+    double extrapolated_error = (1/(double)number_of_time_steps) * extrapolated_error_norm_sum;
+
+    pcout << "Standard error: " << standard_error << std::endl;
+    pcout << "Expanded error: " << expanded_error << std::endl;
+    pcout << "Extrapolated error: " << extrapolated_error << std::endl;
+
+    return 0;
 }
 
 template <int dim, int nstate, typename real>

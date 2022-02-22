@@ -28,7 +28,7 @@ subsection reduced order
   #set adaptation_tolerance = 0.0005
   #set adapt_coarse_basis_constant = 0
   set coarse_basis_dimension = 12
-  set expanded_basis_dimension = 6
+  set expanded_basis_dimension = 12
   set extrapolated_basis_dimension = 12
   set extrapolated_parameter_delta = 0.002
   #set fine_basis_dimension = 18

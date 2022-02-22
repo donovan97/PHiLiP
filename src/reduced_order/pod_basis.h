@@ -41,11 +41,11 @@ private:
     /// Save POD basis to text file
     void saveFullPODBasisToFile();
 
+protected:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasisTranspose; ///< Transpose of pod_basis
     std::shared_ptr<DGBase<dim,double>> dg; ///< Smart pointer to DGBase
 
-protected:
     dealii::LAPACKFullMatrix<double> fullBasis; ///< U matrix output from SVD, full POD basis
     dealii::LAPACKFullMatrix<double> solutionSnapshots; ///< Matrix of snapshots Y
     dealii::LAPACKFullMatrix<double> eigenvaluesSqrtInverse; ///< Matrix of inverse of singular values (sqrt of eigenvalues) along the diagonal

@@ -37,6 +37,9 @@ public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasisTranspose; ///< Transpose of sensitivity basis
 
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> stateAndSensitivityBasis; ///< sensitivity basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> stateAndSensitivityBasisTranspose; ///< Transpose of sensitivity basis
+
 public:
 
     /// Compute POD basis sensitivities
@@ -48,6 +51,9 @@ public:
     /// Function to build sensitivity POD basis
     void buildSensitivityPODBasis();
 
+    /// Function to build state and sensitivity POD basis
+    void buildStateAndSensitivityPODBasis();
+
     /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
@@ -55,8 +61,10 @@ public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
 protected:
+    dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis only
 
-    dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis
+    dealii::LAPACKFullMatrix<double> fullBasisStateAndSensitivity; ///< Full state and sensitivity basis
+
 private:
 
     /// Get Sensitivity POD basis saved to text file
