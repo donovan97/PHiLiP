@@ -17,7 +17,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 #include <algorithm>
-#include "pod_basis_interface.h"
+#include "pod_adaptation_interface.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -79,13 +79,13 @@ public:
     std::vector<unsigned int> getFullBasisIndices();
 };
 
-/*
+
 /// Class for a fine not in coarse expanded POD basis, derived from SensitivityPOD and implementing FineNotInCoarseBasis
 template<int dim>
 class FineNotInCoarseExpandedPOD : public SensitivityPOD<dim>, public FineNotInCoarseBasis<dim> {
 private:
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineNotInCoarseBasis; ///< pod basis
     std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
 
 public:
@@ -96,7 +96,7 @@ public:
     ~FineNotInCoarseExpandedPOD() {};
 
     /// Removes columns of the basis, used during POD adaptation
-    void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
+    //void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
 
     /// Add columns to the basis
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
@@ -113,7 +113,7 @@ template<int dim>
 class FineExpandedPOD : public SensitivityPOD<dim>, public FineBasis<dim> {
 private:
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fineBasis; ///< pod basis
     std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
 
 public:
@@ -132,7 +132,7 @@ public:
     /// Return vector storing which indices of the full basis are present in this basis
     std::vector<unsigned int> getFullBasisIndices();
 };
-*/
+
 /// Class for Extrapolated POD basis, derived from SpecificSensitivityPOD
 template<int dim>
 class ExtrapolatedPOD : public SpecificSensitivityPOD<dim> {

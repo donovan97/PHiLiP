@@ -221,7 +221,7 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
     dealii::LAPACKFullMatrix<double> eigenvectorsSensitivity(this->eigenvectors.m(), this->eigenvectors.n());
 
     //Compute only some sensitivities
-    unsigned int numSensitivities = std::min((unsigned int)20, this->eigenvectors.n());
+    unsigned int numSensitivities = this->all_parameters->reduced_order_param.num_sensitivities;
 
     for(unsigned int j = 0 ; j < numSensitivities; j++){ //For each column
         dealii::Vector<double> kEigenvectorSensitivity = computeModeSensitivity(j);
@@ -236,13 +236,13 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
      *      + (solutionSnapshots * eigenvectorsSensitivity * eigenvaluesSqrtInverse)
      *          - 1/2*(fullBasis * eigenvaluesSensitivity * eigenvaluesInverse)
     */
-    fullBasisSensitivity.reinit(this->fullBasis.m(), this->fullBasis.n());
-    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp1(this->fullBasis.m(), this->fullBasis.n());
-    dealii::LAPACKFullMatrix<double> basis_sensitivity_tmp2(this->fullBasis.m(), this->fullBasis.n());
+    dealii::FullMatrix<double> fullBasisSensitivityTmp(this->fullBasis.m(), this->fullBasis.n());
+    dealii::FullMatrix<double> basis_sensitivity_tmp1(this->fullBasis.m(), this->fullBasis.n());
+    dealii::FullMatrix<double> basis_sensitivity_tmp2(this->fullBasis.m(), this->fullBasis.n());
     dealii::LAPACKFullMatrix<double> eigenvaluesInverse(this->eigenvaluesSqrtInverse.m(), this->eigenvaluesSqrtInverse.n());
     tmp.reinit(this->fullBasis.m(), this->fullBasis.n());
     sensitivitySnapshots.mmult(tmp, this->eigenvectors);
-    tmp.mmult(fullBasisSensitivity, this->eigenvaluesSqrtInverse);
+    tmp.mmult(fullBasisSensitivityTmp, this->eigenvaluesSqrtInverse);
     tmp.reinit(this->fullBasis.m(), this->fullBasis.n());
     this->solutionSnapshots.mmult(tmp, eigenvectorsSensitivity);
     tmp.mmult(basis_sensitivity_tmp1, this->eigenvaluesSqrtInverse);
@@ -250,10 +250,15 @@ void SensitivityPOD<dim>::computeBasisSensitivity() {
     this->fullBasis.mmult(tmp, eigenvaluesSensitivity);
     this->eigenvaluesSqrtInverse.mmult(eigenvaluesInverse, this->eigenvaluesSqrtInverse);
     tmp.mmult(basis_sensitivity_tmp2, eigenvaluesInverse);
-    fullBasisSensitivity.add(1, basis_sensitivity_tmp1);
-    fullBasisSensitivity.add(-0.5, basis_sensitivity_tmp2);
+    fullBasisSensitivityTmp.add(1, basis_sensitivity_tmp1);
+    fullBasisSensitivityTmp.add(-0.5, basis_sensitivity_tmp2);
 
-    std::ofstream out_file("basis_sensitivity.txt");
+    //Since only numSensitivities sensitivities were computed, only numSensitivities columns should be kept, the others are garbage
+    this->pcout << numSensitivities << " " << this->fullBasis.n() << std::endl;
+    fullBasisSensitivity.reinit(this->fullBasis.m(), numSensitivities);
+    fullBasisSensitivity.fill(fullBasisSensitivityTmp, 0,0,0,0);
+
+    std::ofstream out_file("fullBasisSensitivity.txt");
     unsigned int precision = 7;
     fullBasisSensitivity.print_formatted(out_file, precision);
 

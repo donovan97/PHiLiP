@@ -24,7 +24,7 @@ public:
     /// Return vector storing which indices of the full basis are present in this basis
     virtual std::vector<unsigned int> getFullBasisIndices() = 0;
 };
-/*
+
 /// Interface for fine not in coarse basis
 template <int dim>
 class FineNotInCoarseBasis
@@ -34,7 +34,7 @@ public:
     virtual ~FineNotInCoarseBasis () {};
 
     /// Removes columns of the basis, used during POD adaptation
-    virtual void removePODBasisColumns(std::vector<unsigned int> removeColumns) = 0;
+    //virtual void removePODBasisColumns(std::vector<unsigned int> removeColumns) = 0;
 
     /// Add columns to the basis
     virtual void addPODBasisColumns(std::vector<unsigned int> addColumns) = 0;
@@ -63,7 +63,6 @@ public:
     /// Return vector storing which indices of the full basis are present in this basis
     virtual std::vector<unsigned int> getFullBasisIndices() = 0;
 };
- */
 
 }
 }
