@@ -7,9 +7,21 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
+/// Interface for POD
+template <int dim>
+class POD
+{
+public:
+    /// Virtual destructor
+    virtual ~POD () {};
+
+    /// Function to return basis
+    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
+};
+
 /// Interface for coarse basis
 template <int dim>
-class CoarseBasis
+class CoarseBasis : public POD<dim>
 {
 public:
     /// Virtual destructor
@@ -18,29 +30,23 @@ public:
     /// Add columns to the basis
     virtual void addPODBasisColumns(std::vector<unsigned int> addColumns) = 0;
 
-    /// Function to return basis
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
-
     /// Return vector storing which indices of the full basis are present in this basis
     virtual std::vector<unsigned int> getFullBasisIndices() = 0;
 };
 
 /// Interface for fine not in coarse basis
 template <int dim>
-class FineNotInCoarseBasis
+class FineNotInCoarseBasis : public POD<dim>
 {
 public:
     /// Virtual destructor
     virtual ~FineNotInCoarseBasis () {};
 
     /// Removes columns of the basis, used during POD adaptation
-    //virtual void removePODBasisColumns(std::vector<unsigned int> removeColumns) = 0;
+    virtual void removePODBasisColumns(std::vector<unsigned int> removeColumns) = 0;
 
     /// Add columns to the basis
     virtual void addPODBasisColumns(std::vector<unsigned int> addColumns) = 0;
-
-    /// Function to return basis
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
 
     /// Return vector storing which indices of the full basis are present in this basis
     virtual std::vector<unsigned int> getFullBasisIndices() = 0;
@@ -48,7 +54,7 @@ public:
 
 /// Interface for fine basis
 template <int dim>
-class FineBasis
+class FineBasis : public POD<dim>
 {
 public:
     /// Virtual destructor
@@ -56,9 +62,6 @@ public:
 
     /// Add columns to the basis
     virtual void addPODBasisColumns(std::vector<unsigned int> addColumns) = 0;
-
-    /// Function to return basis
-    virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
 
     /// Return vector storing which indices of the full basis are present in this basis
     virtual std::vector<unsigned int> getFullBasisIndices() = 0;

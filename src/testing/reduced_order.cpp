@@ -2,8 +2,9 @@
 
 #include "reduced_order.h"
 #include "parameters/all_parameters.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_basis_state.h"
 #include "reduced_order/pod_basis_types.h"
+#include "reduced_order/pod_interfaces.h"
 
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
@@ -71,7 +72,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     dg_implicit->allocate_system ();
 
     //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(dg_implicit);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(dg_implicit);
 
     dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
 

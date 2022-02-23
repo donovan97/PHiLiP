@@ -5,11 +5,9 @@ namespace ProperOrthogonalDecomposition {
 
 template <int dim>
 SensitivityPOD<dim>::SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
-        : POD<dim>(dg_input)
+        : StatePOD<dim>(dg_input)
         , sensitivityBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , sensitivityBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , stateAndSensitivityBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , stateAndSensitivityBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
     this->pcout << "Searching files..." << std::endl;
 
@@ -322,11 +320,6 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SensitivityPOD<dim>::get
 }
 
 template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> SensitivityPOD<dim>::getPODBasisTranspose() {
-    return sensitivityBasisTranspose;
-}
-
-template <int dim>
 void SensitivityPOD<dim>::buildSensitivityPODBasis() {
 
     this->pcout << "Building sensitivity POD basis matrix..." << std::endl;
@@ -338,22 +331,17 @@ void SensitivityPOD<dim>::buildSensitivityPODBasis() {
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
     dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasisSensitivity.n_rows(), fullBasisSensitivity.n_cols(), fullBasisSensitivity.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullBasisSensitivity.n_cols(), fullBasisSensitivity.n_rows(), fullBasisSensitivity.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
             pod_basis_tmp.set(i, j, fullBasisSensitivity(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullBasisSensitivity(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
-    pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
     sensitivityBasis->reinit(pod_basis_tmp);
     sensitivityBasis->copy_from(pod_basis_tmp);
-    sensitivityBasisTranspose->reinit(pod_basis_tmp);
-    sensitivityBasisTranspose->copy_from(pod_basis_transpose_tmp);
 }
 
 template <int dim>
@@ -372,25 +360,20 @@ void SensitivityPOD<dim>::buildStateAndSensitivityPODBasis() {
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
     dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasisStateAndSensitivity.n_rows(), fullBasisStateAndSensitivity.n_cols(), fullBasisStateAndSensitivity.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullBasisStateAndSensitivity.n_cols(), fullBasisStateAndSensitivity.n_rows(), fullBasisStateAndSensitivity.n_rows());
+
     for(int i : row_index_set){
         for(int j : column_index_set){
             pod_basis_tmp.set(i, j, fullBasisStateAndSensitivity(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullBasisStateAndSensitivity(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
-    pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
     stateAndSensitivityBasis->reinit(pod_basis_tmp);
     stateAndSensitivityBasis->copy_from(pod_basis_tmp);
-    stateAndSensitivityBasisTranspose->reinit(pod_basis_transpose_tmp);
-    stateAndSensitivityBasisTranspose->copy_from(pod_basis_transpose_tmp);
 
     this->pcout << "Done" << std::endl;
 }
-
 
 template class SensitivityPOD <PHILIP_DIM>;
 

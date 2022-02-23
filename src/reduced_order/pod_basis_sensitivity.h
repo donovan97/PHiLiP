@@ -13,7 +13,7 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_basis_state.h"
 #include <deal.II/lac/householder.h>
 
 namespace PHiLiP {
@@ -21,10 +21,9 @@ namespace ProperOrthogonalDecomposition {
 
 template <int dim>
 /// Sensitivity POD basis class
-class SensitivityPOD : public POD<dim>
+class SensitivityPOD : public StatePOD<dim>
 {
 public:
-
     /// Constructor
     SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
@@ -35,12 +34,8 @@ public:
     bool getSensitivityPODBasisFromSnapshots();
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasis; ///< sensitivity basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> sensitivityBasisTranspose; ///< Transpose of sensitivity basis
-
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> stateAndSensitivityBasis; ///< sensitivity basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> stateAndSensitivityBasisTranspose; ///< Transpose of sensitivity basis
 
-public:
 
     /// Compute POD basis sensitivities
     void computeBasisSensitivity();
@@ -57,12 +52,9 @@ public:
     /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
-    /// Function to return basisTranspose
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
 
 protected:
     dealii::LAPACKFullMatrix<double> fullBasisSensitivity; ///< Full sensitivity basis only
-
     dealii::LAPACKFullMatrix<double> fullBasisStateAndSensitivity; ///< Full state and sensitivity basis
 
 private:
@@ -76,7 +68,6 @@ private:
     dealii::LAPACKFullMatrix<double> sensitivitySnapshots; ///< Matrix of sensitivity snapshots
     dealii::LAPACKFullMatrix<double> massWeightedSensitivitySnapshots; ///< Mass matrix weighted sensitivity snapshots
     dealii::LAPACKFullMatrix<double> eigenvaluesSensitivity; ///< Matrix of singular value derivatives along the diagonal
-
 
 };
 

@@ -7,7 +7,7 @@
 
 #include "functional/functional.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_basis.h"
+#include "reduced_order/pod_basis_state.h"
 #include "reduced_order/pod_basis_sensitivity.h"
 #include "linear_solver/linear_solver.h"
 
@@ -17,40 +17,32 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 #include <algorithm>
-#include "pod_adaptation_interface.h"
+#include "pod_interfaces.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template<int dim>
-/// Intermediary class that includes attributes common to all SensitivityPOD basis subtypes
-class SpecificSensitivityPOD : public SensitivityPOD<dim> {
-protected:
-    /// Constructor
-    SpecificSensitivityPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
 
-    /// Destructor
-    ~SpecificSensitivityPOD() {}
+/// Class for Extrapolated POD basis, derived from SensitivityPOD
+class ExtrapolatedPOD : public SensitivityPOD<dim>, public POD<dim> {
+private:
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis; ///< pod basis
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basisTranspose; ///< Transpose of pod_basis
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> extrapolatedBasis; ///< pod basis
+    std::vector<unsigned int> fullBasisIndices; ///< Vector to store which indicies of the full basis are present in this basis
 
 public:
+    /// Constructor
+    ExtrapolatedPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
+
+    /// Destructor
+    ~ExtrapolatedPOD() {}
 
     /// Function to add columns (basis functions) to POD basis. Used when building basis and refining when doing POD adaptation
-    virtual void addPODBasisColumns(const std::vector<unsigned int> addColumns) = 0;
+    virtual void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 
     /// Function to return basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
-
-    /// Function to return basisTranspose
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasisTranspose() override;
-
-    /// Vector to store which indicies of the full basis are present in this basis
-    std::vector<unsigned int> fullBasisIndices;
-
-    /// Vector to store which indicies of the sensitivity basis are present in this basis
-    std::vector<unsigned int> fullSensitivityBasisIndices;
 
 };
 
@@ -96,7 +88,7 @@ public:
     ~FineNotInCoarseExpandedPOD() {};
 
     /// Removes columns of the basis, used during POD adaptation
-    //void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
+    void removePODBasisColumns(const std::vector<unsigned int> removeColumns);
 
     /// Add columns to the basis
     void addPODBasisColumns(const std::vector<unsigned int> addColumns);
@@ -131,19 +123,6 @@ public:
 
     /// Return vector storing which indices of the full basis are present in this basis
     std::vector<unsigned int> getFullBasisIndices();
-};
-
-/// Class for Extrapolated POD basis, derived from SpecificSensitivityPOD
-template<int dim>
-class ExtrapolatedPOD : public SpecificSensitivityPOD<dim> {
-public:
-    /// Constructor
-    ExtrapolatedPOD(std::shared_ptr<DGBase<dim, double>> &dg_input);
-
-    /// Destructor
-    ~ExtrapolatedPOD() {};
-
-    void addPODBasisColumns(const std::vector<unsigned int> addColumns);
 };
 
 }

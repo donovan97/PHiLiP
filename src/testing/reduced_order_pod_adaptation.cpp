@@ -110,13 +110,13 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarsePOD<dim>>(flow_solver_standard->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
     flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
     flow_solver_standard->ode_solver->allocate_ode_system();
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_expanded = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::FineNotInCoarseExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::FineNotInCoarseExpandedPOD<dim>>(flow_solver_expanded->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>>(flow_solver_expanded->dg);
     flow_solver_expanded->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_expanded->dg, pod_expanded);
     flow_solver_expanded->ode_solver->allocate_ode_system();
 

@@ -1,14 +1,13 @@
 #include <deal.II/lac/sparse_matrix.h>
-#include "pod_basis.h"
+#include "pod_basis_state.h"
 #include <deal.II/fe/mapping_q1_eulerian.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim>
-POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+StatePOD<dim>::StatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , fullPODBasisTranspose(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -26,7 +25,7 @@ POD<dim>::POD(std::shared_ptr<DGBase<dim,double>> &dg_input)
 }
 
 template <int dim>
-bool POD<dim>::getPODBasisFromSnapshots() {
+bool StatePOD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
@@ -194,14 +193,14 @@ bool POD<dim>::getPODBasisFromSnapshots() {
 }
 
 template <int dim>
-void POD<dim>::saveFullPODBasisToFile() {
+void StatePOD<dim>::saveFullPODBasisToFile() {
     std::ofstream out_file("full_POD_basis.txt");
     unsigned int precision = 7;
     fullBasis.print_formatted(out_file, precision);
 }
 
 template <int dim>
-bool POD<dim>::getSavedPODBasis(){
+bool StatePOD<dim>::getSavedPODBasis(){
     bool file_found = false;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::directory_iterator(path)) {
@@ -254,17 +253,12 @@ bool POD<dim>::getSavedPODBasis(){
 }
 
 template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD<dim>::getPODBasis(){
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> StatePOD<dim>::getPODBasis(){
     return fullPODBasis;
 }
 
 template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> POD<dim>::getPODBasisTranspose(){
-    return fullPODBasisTranspose;
-}
-
-template <int dim>
-void POD<dim>::buildPODBasis() {
+void StatePOD<dim>::buildPODBasis() {
     std::vector<int> row_index_set(fullBasis.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);
 
@@ -272,25 +266,20 @@ void POD<dim>::buildPODBasis() {
     std::iota(std::begin(column_index_set), std::end(column_index_set),0);
 
     dealii::TrilinosWrappers::SparseMatrix pod_basis_tmp(fullBasis.n_rows(), fullBasis.n_cols(), fullBasis.n_cols());
-    dealii::TrilinosWrappers::SparseMatrix pod_basis_transpose_tmp(fullBasis.n_cols(), fullBasis.n_rows(), fullBasis.n_rows());
 
     for(int i : row_index_set){
         for(int j : column_index_set){
             pod_basis_tmp.set(i, j, fullBasis(i, j));
-            pod_basis_transpose_tmp.set(j, i, fullBasis(i, j));
         }
     }
 
     pod_basis_tmp.compress(dealii::VectorOperation::insert);
-    pod_basis_transpose_tmp.compress(dealii::VectorOperation::insert);
 
     fullPODBasis->reinit(pod_basis_tmp);
     fullPODBasis->copy_from(pod_basis_tmp);
-    fullPODBasisTranspose->reinit(pod_basis_tmp);
-    fullPODBasisTranspose->copy_from(pod_basis_transpose_tmp);
 }
 
-template class POD <PHILIP_DIM>;
+template class StatePOD <PHILIP_DIM>;
 
 }
 }

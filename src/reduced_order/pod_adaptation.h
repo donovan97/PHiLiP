@@ -16,6 +16,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
+#include "pod_interfaces.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -41,13 +42,13 @@ private:
     const Parameters::AllParameters *const all_parameters;
 
     /// Smart pointer to coarse POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarsePOD<dim>> coarsePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseBasis<dim>> coarsePOD;
 
     /// Smart pointer to fine POD basis
-    std::unique_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD;
+    std::unique_ptr<ProperOrthogonalDecomposition::FineBasis<dim>> finePOD;
 
-    /// Smart pointer to fine not incoarse POD basis
-    std::unique_ptr<ProperOrthogonalDecomposition::FineNotInCoarsePOD<dim>> fineNotInCoarsePOD;
+    /// Smart pointer to fine not in coarse POD basis
+    std::unique_ptr<ProperOrthogonalDecomposition::FineNotInCoarseBasis<dim>> fineNotInCoarsePOD;
 
     /// Smart pointer to ode_solver
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
