@@ -30,7 +30,7 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
-    /*
+
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -86,8 +86,10 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_fine = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_fine);
     dg_fine->allocate_system ();
     dealii::VectorTools::interpolate(dg_fine->dof_handler,initial_condition,dg_fine->solution);
-    std::shared_ptr<ProperOrthogonalDecomposition::FinePOD<dim>> finePOD = std::make_shared<ProperOrthogonalDecomposition::FinePOD<dim>>(dg_fine);
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
+    //std::shared_ptr<ProperOrthogonalDecomposition::FineStatePOD<dim>> finePOD = std::make_shared<ProperOrthogonalDecomposition::FineStatePOD<dim>>(dg_fine);
+    //std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_fine, finePOD);
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver_fine =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg_fine);
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
 
@@ -102,7 +104,8 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
-     */
+    /*
+
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
@@ -125,14 +128,14 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     std::shared_ptr<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>> pod_extrapolated = std::make_shared<ProperOrthogonalDecomposition::ExtrapolatedPOD<dim>>(flow_solver_extrapolated->dg);
     flow_solver_extrapolated->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_extrapolated->dg, pod_extrapolated);
     flow_solver_extrapolated->ode_solver->allocate_ode_system();
-
+    */
     /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
     /*Time-averaged relative error, E = 1/n_t * sum_{n=1}^{n_t} (||U_FOM(t^{n}) - U_ROM(t^{n})||_L2 / ||U_FOM(t^{n})||_L2 )
      *Refer to section 6.1 in "The GNAT method for nonlinear model reduction: Effective implementation and application to computational ﬂuid dynamics and turbulent ﬂows"
      *Authors: Kevin Carlberg, Charbel Farhat, ulien Cortial,  David Amsallem
      *Journal of Computational Physics, 2013
      */
-
+    /*
     double finalTime = all_parameters->flow_solver_param.final_time;
 
     const unsigned int number_of_time_steps = static_cast<int>(ceil(finalTime/all_parameters->ode_solver_param.initial_time_step));
@@ -193,6 +196,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     pcout << "Extrapolated error: " << extrapolated_error << std::endl;
 
     return 0;
+     */
 }
 
 template <int dim, int nstate, typename real>

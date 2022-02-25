@@ -17,6 +17,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "ode_solver/ode_solver_factory.h"
 #include "pod_interfaces.h"
+#include "pod_basis_sensitivity_types.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {

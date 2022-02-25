@@ -16,7 +16,7 @@ rewienski_b=(  0.0100    0.0153    0.0206
 
 for ((i = 0 ; i < ${#rewienski_a[@]} ; i++)); do
 
-file="${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_snapshot_steady.prm"
+file="${rewienski_a[i]}_${rewienski_b[i]}_1d_burgers_rewienski_solution_snapshots_steady.prm"
 
 echo "# Listing of Parameters"                                                                      >> $file   
 echo "# ---------------------"                                                                      >> $file   
@@ -44,7 +44,7 @@ echo " "                                                                        
 echo "subsection flow_solver"                                                                       >> $file   
 echo " set flow_case_type = burgers_rewienski_snapshot"                                             >> $file   
 echo " set final_time = 0.5"                                                                        >> $file
-echo " set sensitivity_table_filename = ${rewienski_b[i]}_sensitivity_table_steady"                 >> $file
+echo " set sensitivity_table_filename = ${rewienski_b[i]}_sensitivity_snapshots_steady"                 >> $file
 echo " set steady_state = true"                                                                     >> $file   
 echo "end"                                                                                          >> $file   
 echo " "                                                                                            >> $file   
@@ -54,7 +54,7 @@ echo " set nonlinear_max_iterations            = 500"                           
 echo " set nonlinear_steady_residual_tolerance = 1e-12"                                             >> $file   
 echo " set print_iteration_modulo              = 1"                                                 >> $file   
 echo " set output_solution_vector_modulo       = 1"                                                 >> $file   
-echo " set solutions_table_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solutions_table_steady"   >> $file   
+echo " set solutions_table_filename = ${rewienski_a[i]}_${rewienski_b[i]}_solution_snapshots_steady">> $file
 echo " set ode_solver_type                     = implicit"                                          >> $file   
 echo " end"                                                                                         >> $file   
 echo " "                                                                                            >> $file   

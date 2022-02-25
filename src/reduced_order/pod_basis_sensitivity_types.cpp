@@ -115,11 +115,12 @@ FineNotInCoarseExpandedPOD<dim>::FineNotInCoarseExpandedPOD(std::shared_ptr<DGBa
         : SensitivityPOD<dim>(dg_input)
         , fineNotInCoarseBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
+    int start = this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension/2;
     int numVectors = this->all_parameters->reduced_order_param.fine_expanded_basis_dimension - this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension;
     std::vector<unsigned int> initialBasisIndices(numVectors);
 
-    std::iota(initialBasisIndices.begin(), initialBasisIndices.begin() + numVectors/2, numVectors/2);
-    std::iota(initialBasisIndices.begin() + numVectors/2, initialBasisIndices.end(), this->fullPODBasis->n() + numVectors/2);
+    std::iota(initialBasisIndices.begin(), initialBasisIndices.begin() + numVectors/2, start);
+    std::iota(initialBasisIndices.begin() + numVectors/2, initialBasisIndices.end(), this->fullPODBasis->n() + start);
 
     addPODBasisColumns(initialBasisIndices);
 }

@@ -32,7 +32,7 @@ void PODAdaptation<dim, nstate>::progressivePODAdaptation()
         getDualWeightedResidual();
 
         if(fineNotInCoarsePOD->getFullBasisIndices().empty()){
-            pcout << "Desired tolerance was not achieved." << std::endl;
+            pcout << "No basis vectors remaining to add!" << std::endl;
             break;
         }
     }
@@ -135,11 +135,19 @@ void PODAdaptation<dim, nstate>::getDualWeightedResidual()
     pcout << "Coarse functional: " << std::setprecision(15) << functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
 
     //Compute fine adjoint
+    pcout << "HERE1" << std::endl;
     getReducedGradient(fineGradient);
+    pcout << "HERE2" << std::endl;
     applyReducedJacobianTranspose(fineAdjoint, fineGradient);
 
+    pcout << "HERE3" << std::endl;
+    for(unsigned int i = 0 ; i < fineNotInCoarsePOD->getFullBasisIndices().size() ; i++){
+        pcout << fineAdjoint[i] << std::endl;
+        pcout << fineNotInCoarsePOD->getFullBasisIndices()[i] << std::endl;
+    }
     //Extract fine not in coarse adjoint
     fineAdjoint.extract_subvector_to(fineNotInCoarsePOD->getFullBasisIndices(), fineNotInCoarseAdjoint);
+    pcout << "HERE4" << std::endl;
 
     //Compute fine not in coarse residual
     fineNotInCoarsePOD->getPODBasis()->Tvmult(fineNotInCoarseResidual, dg->right_hand_side);
