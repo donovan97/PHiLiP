@@ -52,6 +52,9 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
     linesearch();
+    //double step_length = 1.0;
+    //this->dg->solution.add(step_length, this->solution_update);
+
 
     this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);

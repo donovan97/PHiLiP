@@ -32,7 +32,7 @@ class PODAdaptation
 {
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
-private:
+protected:
     /// Functional
     Functional<dim,nstate,double> &functional;
 
@@ -74,7 +74,7 @@ public:
     void getReducedGradient(DealiiVector &reducedGradient);
 
     /// Apply reduced-order Jacobian transpose to solve for reduced-order adjoint
-    void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
+    virtual void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
 
     /// Simple adaptation algorithm
     void simplePODAdaptation();
@@ -83,7 +83,7 @@ public:
     void progressivePODAdaptation();
 
     /// Compute dual-weighted residual
-    void getDualWeightedResidual();
+    virtual void getDualWeightedResidual();
 
     /// Determine which POD basis to add based on dual-weighted residual error
     std::vector<unsigned int> getPODBasisColumnsToAdd();

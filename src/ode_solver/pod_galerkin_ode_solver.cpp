@@ -86,7 +86,6 @@ double PODGalerkinODESolver<dim,real,MeshType>::linesearch()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 1.1;
 
     if (iline == maxline) {
         step_length = -1.0;

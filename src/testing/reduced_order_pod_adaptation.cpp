@@ -14,6 +14,7 @@
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
 #include "reduced_order/pod_adaptation.h"
+#include "reduced_order/pod_petrov_galerkin_adaptation.h"
 #include "reduced_order/pod_basis_sensitivity.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "flow_solver.h"
@@ -30,7 +31,7 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
-    /*
+
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -78,7 +79,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
     //POD adaptation
-    std::shared_ptr<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODAdaptation<dim, nstate>>(dg, burgers_functional);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODPetrovGalerkinAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODPetrovGalerkinAdaptation<dim, nstate>>(dg, burgers_functional);
     pod_adapt->progressivePODAdaptation();
 
     //Evaluate functional on fine space to compare
@@ -104,7 +105,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
-    */
+
     /*
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
@@ -199,6 +200,9 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     return 0;
      */
 
+
+
+    /*
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
@@ -241,6 +245,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     pcout << "Expanded func error: " << std::setprecision(15)  << expanded_func_error << std::setprecision(6) << std::endl;
 
     return 0;
+     */
 }
 
 template <int dim, int nstate, typename real>

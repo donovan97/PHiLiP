@@ -10,15 +10,16 @@ PODAdaptation<dim, nstate>::PODAdaptation(std::shared_ptr<DGBase<dim,double>> &d
         : functional(functional_input)
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
-        , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(dg))
-        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FineStatePOD<dim>>(dg))
-        , fineNotInCoarsePOD(std::make_unique<ProperOrthogonalDecomposition::FineNotInCoarseStatePOD<dim>>(dg))
+        , coarsePOD(std::make_shared<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>>(dg))
+        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FineExpandedPOD<dim>>(dg))
+        , fineNotInCoarsePOD(std::make_unique<ProperOrthogonalDecomposition::FineNotInCoarseExpandedPOD<dim>>(dg))
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
 {
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam::declare_parameters (parameter_handler);
     this->linear_solver_param.parse_parameters (parameter_handler);
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
 }
 
 template <int dim, int nstate>

@@ -26,18 +26,18 @@ end
 #Burgers parameters
 subsection burgers
  set rewienski_a = 3.0
- set rewienski_b = 0.012
+ set rewienski_b = 0.0735
 end
 
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 0.0000001
   set adapt_coarse_basis_constant = 5
-  set coarse_basis_dimension = 18
-  set fine_basis_dimension = 7
-  set num_sensitivities = 7
-  set coarse_expanded_basis_dimension = 36
-  set fine_expanded_basis_dimension = 14
+  set coarse_basis_dimension = 8
+  set fine_basis_dimension = 18
+  set num_sensitivities = 16
+  set coarse_expanded_basis_dimension = 16
+  set fine_expanded_basis_dimension = 36
   set path_to_search = ./pod_basis/burgers_rewienski_sensitivity_1param/
   set method_of_snapshots = true
   set consider_error_sign = false
