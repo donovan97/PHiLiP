@@ -46,6 +46,9 @@ public:
     /// Reduced lhs for linear solver
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> reduced_lhs;
 
+    /// Line search algorithm
+    double linesearch () override;
+
 };
 
 } // ODE namespace

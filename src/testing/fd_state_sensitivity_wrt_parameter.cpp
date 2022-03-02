@@ -18,6 +18,8 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_1 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_1);
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_2 = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params_2);
 
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_test = flow_solver_1->dg;
+
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;
 

@@ -30,7 +30,7 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
-
+    /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -104,6 +104,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
+    */
     /*
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
@@ -197,6 +198,49 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 
     return 0;
      */
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
+    flow_solver_implicit->ode_solver->allocate_ode_system();
+    std::shared_ptr<DGBaseState<dim,nstate,double>> dg_state_implicit = std::dynamic_pointer_cast<DGBaseState<dim,nstate,double>>(flow_solver_implicit->dg);
+    auto functional_implicit = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_implicit->dg, dg_state_implicit->pde_physics_fad_fad, true, false);
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
+    flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
+    flow_solver_standard->ode_solver->allocate_ode_system();
+    std::shared_ptr<DGBaseState<dim,nstate,double> > dg_state_standard = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver_standard->dg);
+    auto functional_standard = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_standard->dg, dg_state_standard->pde_physics_fad_fad, true, false);
+
+    std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_expanded = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>>(flow_solver_expanded->dg);
+    flow_solver_expanded->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_expanded->dg, pod_expanded);
+    flow_solver_expanded->ode_solver->allocate_ode_system();
+    std::shared_ptr<DGBaseState<dim,nstate,double> > dg_state_expanded = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver_expanded->dg);
+    auto functional_expanded = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_expanded->dg, dg_state_expanded->pde_physics_fad_fad, true, false);
+
+    flow_solver_implicit->ode_solver->steady_state();
+    flow_solver_standard->ode_solver->steady_state();
+    flow_solver_expanded->ode_solver->steady_state();
+
+    dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
+    dealii::LinearAlgebra::distributed::Vector<double> expanded_solution(flow_solver_expanded->dg->solution);
+    dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
+
+    double standard_error = ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
+    double expanded_error = (((expanded_solution-=implicit_solution).l2_norm())/implicit_solution.l2_norm());
+    double standard_func_error = abs(functional_implicit.evaluate_functional(false,false) - functional_standard.evaluate_functional(false,false));
+    double expanded_func_error = abs(functional_implicit.evaluate_functional(false,false) - functional_expanded.evaluate_functional(false,false));
+
+    pcout << "Standard error: " << standard_error << std::endl;
+    pcout << "Expanded error: " << expanded_error << std::endl;
+    pcout << "Standard func error: " << std::setprecision(15)  << standard_func_error << std::setprecision(6) << std::endl;
+    pcout << "Expanded func error: " << std::setprecision(15)  << expanded_func_error << std::setprecision(6) << std::endl;
+
+    return 0;
 }
 
 template <int dim, int nstate, typename real>

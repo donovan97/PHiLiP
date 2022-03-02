@@ -51,10 +51,41 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
-    this->linesearch();
+    linesearch();
 
     this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
+}
+
+template <int dim, typename real, typename MeshType>
+double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
+{
+    const auto old_solution = this->dg->solution;
+    double step_length = 1.0;
+
+    const double step_reduction = 0.5;
+    const int maxline = 20;
+    const double reduction_tolerance_1 = 1.0;
+
+    const double initial_residual = this->dg->get_residual_l2norm();
+
+    this->dg->solution.add(step_length, this->solution_update);
+    this->dg->assemble_residual ();
+    double new_residual = this->dg->get_residual_l2norm();
+    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+
+    int iline = 0;
+    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
+        step_length = step_length * step_reduction;
+        this->dg->solution = old_solution;
+        this->dg->solution.add(step_length, this->solution_update);
+        this->dg->assemble_residual ();
+        new_residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    }
+    if (iline == 0) this->CFL_factor *= 2.0;
+
+    return step_length;
 }
 
 template <int dim, typename real, typename MeshType>
