@@ -13,10 +13,12 @@
 #include "parameters/all_parameters.h"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_factory.h"
-#include "reduced_order/pod_adaptation.h"
-#include "reduced_order/pod_petrov_galerkin_adaptation.h"
+#include "reduced_order/pod_adaptation_base.h"
+#include "reduced_order/pod_fine_basis_adaptation.h"
+#include "reduced_order/pod_error_adaptation.h"
 #include "reduced_order/pod_basis_sensitivity.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
+#include "reduced_order/pod_full_dim_adaptation.h"
 #include "flow_solver.h"
 
 
@@ -79,7 +81,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
     //POD adaptation
-    std::shared_ptr<ProperOrthogonalDecomposition::PODPetrovGalerkinAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODPetrovGalerkinAdaptation<dim, nstate>>(dg, burgers_functional);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODPetrovGalerkinFullDimAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODPetrovGalerkinFullDimAdaptation<dim, nstate>>(dg, burgers_functional);
     pod_adapt->progressivePODAdaptation();
 
     //Evaluate functional on fine space to compare

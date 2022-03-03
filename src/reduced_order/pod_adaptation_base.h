@@ -1,5 +1,5 @@
-#ifndef __POD_ADAPTATION__
-#define __POD_ADAPTATION__
+#ifndef __POD_ADAPTATION_BASE__
+#define __POD_ADAPTATION_BASE__
 
 #include <fstream>
 #include <iostream>
@@ -45,9 +45,6 @@ protected:
     /// Smart pointer to coarse POD basis
     std::shared_ptr<ProperOrthogonalDecomposition::CoarseBasis<dim>> coarsePOD;
 
-    /// Smart pointer to fine POD basis
-    std::unique_ptr<ProperOrthogonalDecomposition::FineBasis<dim>> finePOD;
-
     /// Smart pointer to fine not in coarse POD basis
     std::unique_ptr<ProperOrthogonalDecomposition::FineNotInCoarseBasis<dim>> fineNotInCoarsePOD;
 
@@ -70,12 +67,6 @@ public:
     /// Destructor
     ~PODAdaptation () {};
 
-    /// Compute reduced-order gradient
-    void getReducedGradient(DealiiVector &reducedGradient);
-
-    /// Apply reduced-order Jacobian transpose to solve for reduced-order adjoint
-    virtual void applyReducedJacobianTranspose(DealiiVector &reducedAdjoint, DealiiVector &reducedGradient);
-
     /// Simple adaptation algorithm
     void simplePODAdaptation();
 
@@ -83,10 +74,10 @@ public:
     void progressivePODAdaptation();
 
     /// Compute dual-weighted residual
-    virtual void getDualWeightedResidual();
+    virtual void getDualWeightedResidual() = 0;
 
     /// Determine which POD basis to add based on dual-weighted residual error
-    std::vector<unsigned int> getPODBasisColumnsToAdd();
+    virtual std::vector<unsigned int> getPODBasisColumnsToAdd() = 0;
 
     /// Compute value of the functional on the coarse space
     double getCoarseFunctional();

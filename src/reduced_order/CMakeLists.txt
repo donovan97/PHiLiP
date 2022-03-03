@@ -1,10 +1,11 @@
 set(SOURCE
     pod_basis_state.cpp
     pod_basis_types.cpp
-    pod_adaptation.cpp
+    pod_adaptation_base.cpp
     pod_basis_sensitivity.cpp
     pod_basis_sensitivity_types.cpp
-    pod_petrov_galerkin_adaptation.cpp)
+    pod_fine_basis_adaptation.cpp
+    pod_full_dim_adaptation.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

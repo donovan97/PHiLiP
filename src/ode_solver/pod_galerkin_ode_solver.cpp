@@ -86,22 +86,7 @@ double PODGalerkinODESolver<dim,real,MeshType>::linesearch()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-
-    if (iline == maxline) {
-        step_length = -1.0;
-        this->dg->solution.add(step_length, this->solution_update);
-        this->dg->assemble_residual ();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1 ; ++iline) {
-            step_length = step_length * step_reduction;
-            this->dg->solution = old_solution;
-            this->dg->solution.add(step_length, this->solution_update);
-            this->dg->assemble_residual ();
-            new_residual = this->dg->get_residual_l2norm();
-            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-        }
-    }
+    if (iline == 0) this->CFL_factor *= 2.0;
 
     if (iline == maxline) {
         step_length = 1.0;
@@ -119,7 +104,6 @@ double PODGalerkinODESolver<dim,real,MeshType>::linesearch()
             this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
         }
     }
-
     if (iline == maxline) {
         this->CFL_factor *= 0.5;
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
