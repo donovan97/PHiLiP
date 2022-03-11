@@ -30,6 +30,8 @@ public:
     /// Destructor
     ~BurgersRewienskiSnapshot() {};
 
+    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb;
+
 protected:
     const int number_of_refinements; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
