@@ -19,7 +19,7 @@ namespace ProperOrthogonalDecomposition {
 
 /// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
-class StatePOD
+class StatePOD: public POD<dim>
 {
 public:
     /// Constructor
@@ -31,14 +31,14 @@ public:
     ///Virtual function to get POD basis for all derived classes
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
 
-private:
+public:
     /// Get POD basis saved to text file
     bool getSavedPODBasis();
 
     /// Save POD basis to text file
     void saveFullPODBasisToFile();
 
-protected:
+public:
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> fullPODBasis; ///< First num_basis columns of fullPODBasisLAPACK
     std::shared_ptr<DGBase<dim,double>> dg; ///< Smart pointer to DGBase
 
@@ -50,6 +50,7 @@ protected:
     dealii::LAPACKFullMatrix<double> massWeightedSolutionSnapshots; ///< B = Y^T M Y, where Y is the matrix of snapshots, and M is the mass matrix
     dealii::LAPACKFullMatrix<double> massWeightedSolutionSnapshotsCopy; ///< Copy of massWeightedSolutionSnapshots, necessary for operations in SensitivityPOD
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+    std::string path;
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
@@ -58,6 +59,7 @@ protected:
 
     /// Build POD basis consisting of the first num_basis columns of fullPODBasisLAPACK
     void buildPODBasis();
+
 };
 
 }

@@ -31,9 +31,9 @@ class PODFineBasisAdaptation: public PODAdaptation<dim, nstate>
 
 public:
     /// Smart pointer to fine POD basis
-    std::unique_ptr<ProperOrthogonalDecomposition::FineBasis<dim>> finePOD;
+    std::shared_ptr<ProperOrthogonalDecomposition::FineBasis<dim>> finePOD;
 
-protected:
+public:
 
     /// Constructor
     PODFineBasisAdaptation(std::shared_ptr<DGBase < dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input);

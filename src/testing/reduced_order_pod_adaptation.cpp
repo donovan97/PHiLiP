@@ -33,7 +33,7 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
-
+    /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -81,7 +81,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
 
     //POD adaptation
-    std::shared_ptr<ProperOrthogonalDecomposition::PODPetrovGalerkinFullDimAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODPetrovGalerkinFullDimAdaptation<dim, nstate>>(dg, burgers_functional);
+    std::shared_ptr<ProperOrthogonalDecomposition::PODGalerkinFullDimAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODGalerkinFullDimAdaptation<dim, nstate>>(dg, burgers_functional);
     pod_adapt->progressivePODAdaptation();
 
     //Evaluate functional on fine space to compare
@@ -96,7 +96,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     ode_solver_fine->steady_state();
     auto functional_fine = BurgersRewienskiFunctional<dim,nstate,double>(dg_fine,dg_state_fine->pde_physics_fad_fad,true,false);
 
-    pcout << "Fine functional: " << std::setprecision(15)  << functional_fine.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
+    pcout << "Implicit functional: " << std::setprecision(15)  << functional_fine.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
     pcout << "Coarse functional: " << std::setprecision(15)  << pod_adapt->getCoarseFunctional() << std::setprecision(6) << std::endl;
 
     if(abs(pod_adapt->getCoarseFunctional() - functional_fine.evaluate_functional(false,false)) > all_parameters->reduced_order_param.adaptation_tolerance){
@@ -107,6 +107,114 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
+    */
+
+    //Testing FOM->ROM error
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+
+    pcout << "Running Burgers Rewienski with parameter a: "
+          << param.burgers_param.rewienski_a
+          << " and parameter b: "
+          << param.burgers_param.rewienski_b
+          << std::endl;
+
+    std::shared_ptr<dealii::Triangulation<dim>> grid = std::make_shared<dealii::Triangulation<dim>>();
+
+    double left = param.grid_refinement_study_param.grid_left;
+    double right = param.grid_refinement_study_param.grid_right;
+    const bool colorize = true;
+    int n_refinements = param.grid_refinement_study_param.num_refinements;
+    unsigned int poly_degree = param.grid_refinement_study_param.poly_degree;
+    dealii::GridGenerator::hyper_cube(*grid, left, right, colorize);
+
+    grid->refine_global(n_refinements);
+    pcout << "Grid generated and refined" << std::endl;
+
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+    pcout << "dg created" <<std::endl;
+    dg->allocate_system ();
+
+    // casting to dg state
+    std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg);
+
+    pcout << "Implement initial conditions" << std::endl;
+    dealii::FunctionParser<1> initial_condition;
+    std::string variables = "x";
+    std::map<std::string,double> constants;
+    constants["pi"] = dealii::numbers::PI;
+    std::string expression = "1";
+    initial_condition.initialize(variables, expression, constants);
+    dealii::VectorTools::interpolate(dg->dof_handler,initial_condition,dg->solution);
+
+    pcout << "Dimension: " << dim
+          << "\t Polynomial degree p: " << poly_degree
+          << std::endl
+          << ". Number of active cells: " << grid->n_global_active_cells()
+          << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
+          << std::endl;
+
+    // Create functional
+    auto burgers_functional = BurgersRewienskiFunctional<dim,nstate,double>(dg,dg_state->pde_physics_fad_fad,true,false);
+
+    //POD adaptation
+    std::shared_ptr<ProperOrthogonalDecomposition::PODGalerkinFineBasisAdaptation<dim, nstate>> pod_adapt = std::make_shared<ProperOrthogonalDecomposition::PODGalerkinFineBasisAdaptation<dim, nstate>>(dg, burgers_functional);
+
+    std::shared_ptr<ProperOrthogonalDecomposition::StatePOD<dim>> pod_coarse = std::make_shared<ProperOrthogonalDecomposition::StatePOD<dim>>(dg);
+    pod_coarse->path = "./pod_basis/burgers_rewienski_sensitivity_1param_2/";
+    pod_coarse->getPODBasisFromSnapshots();
+    pod_coarse->saveFullPODBasisToFile();
+    pod_coarse->buildPODBasis();
+
+    using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
+    //Initialize
+    DealiiVector fineGradient(pod_adapt->finePOD->getPODBasis()->n());
+    DealiiVector fineAdjoint(pod_adapt->finePOD->getPODBasis()->n());
+    DealiiVector fineBasisResidual(pod_adapt->finePOD->getPODBasis()->n());
+    pod_adapt->dualWeightedResidual.reinit(pod_adapt->finePOD->getPODBasis()->n());
+
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    pod_adapt->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, dg, pod_coarse);
+    pod_adapt->ode_solver->steady_state();
+
+    //Output coarse basis functional
+    this->pcout << "Coarse basis functional: " << std::setprecision(15) << pod_adapt->functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
+
+    //Solve implicit
+    //ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    //pod_adapt->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, pod_adapt->dg);
+    //pod_adapt->ode_solver->steady_state();
+
+    //Output implicit functional
+    //this->pcout << "Implicit functional: " << std::setprecision(15) << pod_adapt->functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
+
+    //Compute adjoint on fine basis
+    pod_adapt->getReducedGradient(fineGradient);
+    pod_adapt->applyReducedJacobianTranspose(fineAdjoint, fineGradient);
+
+    //Project residual on fine basis
+    pod_adapt->finePOD->getPODBasis()->Tvmult(fineBasisResidual, pod_adapt->dg->right_hand_side);
+
+    //Compute dual weighted residual
+    pod_adapt->error = 0;
+    this->pcout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
+    for(unsigned int i = 0; i < fineAdjoint.size(); i++){
+        pod_adapt->dualWeightedResidual[i] = -(fineAdjoint[i] * fineBasisResidual[i]);
+        pod_adapt->error = pod_adapt->error + pod_adapt->dualWeightedResidual[i];
+        this->pcout << std::setw(10) << std::left << pod_adapt->finePOD->getFullBasisIndices()[i] << std::setw(20) << std::left << fineAdjoint[i] << std::setw(20) << std::left << fineBasisResidual[i] << std::setw(20) << std::left << pod_adapt->dualWeightedResidual[i] << std::endl;
+    }
+    this->pcout << std::endl << "Total error: " << pod_adapt->error << std::endl;
+
+    //Compute fine basis solution
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    pod_adapt->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, pod_adapt->dg, pod_adapt->finePOD);
+    pod_adapt->ode_solver->steady_state();
+
+    //Output fine basis functional
+    this->pcout << "Fine basis functional: " << std::setprecision(15) << pod_adapt->functional.evaluate_functional(false,false) << std::setprecision(6) << std::endl;
+
+
+    return 0;
+
 
     /*
 
@@ -222,15 +330,22 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_expanded = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::CoarseExpandedPOD<dim>>(flow_solver_expanded->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::FineExpandedPOD<dim>> pod_expanded = std::make_shared<ProperOrthogonalDecomposition::FineExpandedPOD<dim>>(flow_solver_expanded->dg);
     flow_solver_expanded->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_expanded->dg, pod_expanded);
     flow_solver_expanded->ode_solver->allocate_ode_system();
     std::shared_ptr<DGBaseState<dim,nstate,double> > dg_state_expanded = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(flow_solver_expanded->dg);
     auto functional_expanded = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_expanded->dg, dg_state_expanded->pde_physics_fad_fad, true, false);
 
+    this->pcout << "n columns" << pod_expanded->getPODBasis()->n() <<std::endl;
+
+    std::ofstream out_file("fullBasisStateAndSensitivity_used.txt");
+    unsigned int precision = 7;
+    pod_expanded->getPODBasis()->print(out_file, precision);
+
     flow_solver_implicit->ode_solver->steady_state();
     flow_solver_standard->ode_solver->steady_state();
     flow_solver_expanded->ode_solver->steady_state();
+
 
     dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
     dealii::LinearAlgebra::distributed::Vector<double> expanded_solution(flow_solver_expanded->dg->solution);
@@ -246,8 +361,17 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     pcout << "Standard func error: " << std::setprecision(15)  << standard_func_error << std::setprecision(6) << std::endl;
     pcout << "Expanded func error: " << std::setprecision(15)  << expanded_func_error << std::setprecision(6) << std::endl;
 
+    std::ofstream myfile;
+    std::string filename = std::to_string(all_parameters->burgers_param.rewienski_b) + "_output.txt";
+    myfile.open (filename);
+    myfile << standard_error << std::endl;
+    myfile << expanded_error << std::endl;
+    myfile << std::setprecision(15)  << standard_func_error << std::setprecision(6) << std::endl;
+    myfile << std::setprecision(15)  << expanded_func_error << std::setprecision(6) << std::endl;
+    myfile.close();
+
     return 0;
-     */
+    */
 }
 
 template <int dim, int nstate, typename real>

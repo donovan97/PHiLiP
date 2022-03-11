@@ -22,10 +22,12 @@ std::vector<unsigned int> PODFullDimAdaptation<dim, nstate>::getPODBasisColumnsT
     std::vector<unsigned int> PODBasisColumnsToAdd;
     std::map<double, unsigned int>::iterator element;
 
-    for(unsigned int i = 0; i < fineNotInCoarseDualWeightedResidual.size(); i++){
+    this->pcout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Dual-weighted residual" << std::endl;
+    for(unsigned int i = 0; i < this->fineNotInCoarseDualWeightedResidual.size(); i++){
         dualWeightedResidualToIndex.emplace(abs(fineNotInCoarseDualWeightedResidual[i]), this->fineNotInCoarsePOD->getFullBasisIndices()[i]);
-        this->pcout << fineNotInCoarseDualWeightedResidual[i] << " " << this->fineNotInCoarsePOD->getFullBasisIndices()[i] << std::endl;
+        this->pcout << std::setw(10) << std::left << this->fineNotInCoarsePOD->getFullBasisIndices()[i] << std::setw(20) << this->fineNotInCoarseDualWeightedResidual[i] << std::endl;
     }
+
     for (unsigned int i = 0; i < this->all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) { //Add user-specified number of basis vectors
         element = std::prev(dualWeightedResidualToIndex.end());
         PODBasisColumnsToAdd.push_back(element->second);
@@ -33,29 +35,6 @@ std::vector<unsigned int> PODFullDimAdaptation<dim, nstate>::getPODBasisColumnsT
         dualWeightedResidualToIndex.erase(element);
     }
 
-    /*
-    for(unsigned int i = 0; i < fineNotInCoarseDualWeightedResidual.size(); i++){
-        dualWeightedResidualToIndex.emplace(fineNotInCoarseDualWeightedResidual[i], fineNotInCoarsePOD->getFullBasisIndices()[i]);
-        pcout << fineNotInCoarseDualWeightedResidual[i] << " " << fineNotInCoarsePOD->getFullBasisIndices()[i] << std::endl;
-    }
-    double adaptationError = error;
-    for (unsigned int i = 0; i < all_parameters->reduced_order_param.adapt_coarse_basis_constant; i++) { //Add user-specified number of basis vectors
-        if(abs(adaptationError) < all_parameters->reduced_order_param.adaptation_tolerance){
-            break;
-        }
-        if(adaptationError > 0){
-            element = std::prev(dualWeightedResidualToIndex.end()); //Get largest negative value
-        }
-        else{
-            element = dualWeightedResidualToIndex.begin(); //Get largest positive value
-        }
-        PODBasisColumnsToAdd.push_back(element->second);
-        pcout << "Adding POD basis: " << element->second << std::endl;
-        adaptationError = adaptationError - element->first;
-        pcout << "Estimated adaptation error: " << adaptationError << std::endl;
-        dualWeightedResidualToIndex.erase(element);
-    }
-    */
     return PODBasisColumnsToAdd;
 }
 
@@ -128,11 +107,10 @@ void PODPetrovGalerkinFullDimAdaptation<dim, nstate>::getDualWeightedResidual() 
 
     //Compute dual weighted residual
     this->error = 0;
-    //pcout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
     for(unsigned int i = 0; i < adjoint.size(); i++){
         this->dualWeightedResidual[i] = -(adjoint[i] * this->dg->right_hand_side[i]);
         this->error = this->error + this->dualWeightedResidual[i];
-        //pcout << std::setw(10) << std::left << fineNotInCoarsePOD->getFullBasisIndices()[i] << std::setw(20) << std::left << fineNotInCoarseAdjoint[i] << std::setw(20) << std::left << fineNotInCoarseResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
+        //this->pcout << std::setw(10) << std::left << this->fineNotInCoarsePOD->getFullBasisIndices()[i] << std::setw(20) << std::left << adjoint[i] << std::setw(20) << std::left << this->dg->right_hand_side[i] << std::setw(20) << std::left << this->dualWeightedResidual[i] << std::endl;
     }
     this->pcout << std::endl << "Total error: " << this->error << std::endl;
 

@@ -58,6 +58,7 @@ CoarseExpandedPOD<dim>::CoarseExpandedPOD(std::shared_ptr<DGBase<dim,double>> &d
         : SensitivityPOD<dim>(dg_input)
         , coarseBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
+    /*
     int numVectors = this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension;
 
     std::vector<unsigned int> initialBasisIndices(numVectors);
@@ -65,6 +66,10 @@ CoarseExpandedPOD<dim>::CoarseExpandedPOD(std::shared_ptr<DGBase<dim,double>> &d
 
     std::iota(initialBasisIndices.begin(), initialBasisIndices.begin() + numVectors/2, 0); //Fill first half as 0,1,2...
     std::iota(initialBasisIndices.begin() + numVectors/2, initialBasisIndices.end(), this->fullPODBasis->n()); //Fill second half as n, n+1, n+2...
+    */
+
+    std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension);
+    std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices), 0);
 
     addPODBasisColumns(initialBasisIndices);
 }
@@ -115,12 +120,19 @@ FineNotInCoarseExpandedPOD<dim>::FineNotInCoarseExpandedPOD(std::shared_ptr<DGBa
         : SensitivityPOD<dim>(dg_input)
         , fineNotInCoarseBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
 {
+            /*
     int start = this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension/2;
     int numVectors = this->all_parameters->reduced_order_param.fine_expanded_basis_dimension - this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension;
     std::vector<unsigned int> initialBasisIndices(numVectors);
 
     std::iota(initialBasisIndices.begin(), initialBasisIndices.begin() + numVectors/2, start);
     std::iota(initialBasisIndices.begin() + numVectors/2, initialBasisIndices.end(), this->fullPODBasis->n() + start);
+             */
+
+    std::vector<unsigned int> initialBasisIndices(this->all_parameters->reduced_order_param.fine_expanded_basis_dimension-
+                                                  this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension);
+    std::iota(std::begin(initialBasisIndices), std::end(initialBasisIndices),
+              this->all_parameters->reduced_order_param.coarse_expanded_basis_dimension);
 
     addPODBasisColumns(initialBasisIndices);
 }

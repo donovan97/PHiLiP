@@ -25,7 +25,7 @@ namespace ProperOrthogonalDecomposition {
 template<int dim>
 
 /// Class for Extrapolated POD basis, derived from SensitivityPOD
-class ExtrapolatedPOD : public SensitivityPOD<dim>, public POD<dim> {
+class ExtrapolatedPOD : public SensitivityPOD<dim>{
 private:
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> extrapolatedBasis; ///< pod basis

@@ -67,8 +67,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
-    const int maxline = 20;
+    const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
+    const double reduction_tolerance_2 = 2.0;
 
     const double initial_residual = this->dg->get_residual_l2norm();
 
@@ -87,6 +88,30 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
+
+    if (iline == maxline) {
+        step_length = 1.0;
+        this->pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
+        this->dg->solution.add(step_length, this->solution_update);
+        this->dg->assemble_residual ();
+        new_residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2 ; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            this->dg->solution.add(step_length, this->solution_update);
+            this->dg->assemble_residual ();
+            new_residual = this->dg->get_residual_l2norm();
+            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
+    }
+    if (iline == maxline) {
+        this->CFL_factor *= 0.5;
+        this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;
+        this->pcout << " Resetting solution and reducing CFL_factor by : " << this->CFL_factor << std::endl;
+        this->dg->solution = old_solution;
+        return 0.0;
+    }
 
     return step_length;
 }

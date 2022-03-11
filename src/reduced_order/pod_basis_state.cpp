@@ -10,6 +10,7 @@ StatePOD<dim>::StatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : fullPODBasis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , dg(dg_input)
         , all_parameters(dg->all_parameters)
+        , path(all_parameters->reduced_order_param.path_to_search)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
@@ -28,7 +29,7 @@ template <int dim>
 bool StatePOD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
     std::vector<dealii::FullMatrix<double>> snapshotMatrixContainer;
-    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
+    //std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
 
     std::vector<std::filesystem::path> files_in_directory;
     std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
@@ -194,7 +195,7 @@ bool StatePOD<dim>::getPODBasisFromSnapshots() {
 
 template <int dim>
 void StatePOD<dim>::saveFullPODBasisToFile() {
-    std::ofstream out_file("full_POD_basis.txt");
+    std::ofstream out_file("fullStateBasis.txt");
     unsigned int precision = 7;
     fullBasis.print_formatted(out_file, precision);
 }
@@ -202,9 +203,9 @@ void StatePOD<dim>::saveFullPODBasisToFile() {
 template <int dim>
 bool StatePOD<dim>::getSavedPODBasis(){
     bool file_found = false;
-    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
+    //std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     for (const auto & entry : std::filesystem::directory_iterator(path)) {
-        if (std::string(entry.path().filename()).std::string::find("pod_solution_basis") != std::string::npos) {
+        if (std::string(entry.path().filename()).std::string::find("fullStateBasis_qr") != std::string::npos) {
             pcout << "Processing " << entry.path() << std::endl;
             file_found = true;
             std::ifstream myfile(entry.path());

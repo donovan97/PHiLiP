@@ -20,18 +20,19 @@ SensitivityPOD<dim>::SensitivityPOD(std::shared_ptr<DGBase<dim,double>> &dg_inpu
         }
         computeBasisSensitivity();
         saveSensitivityPODBasisToFile();
+        buildSensitivityPODBasis();
+        //Make combined state and sensitivity basis
+        buildStateAndSensitivityPODBasis();
     }
-    buildSensitivityPODBasis();
-    //Make combined state and sensitivity basis
-    buildStateAndSensitivityPODBasis();
+    saveSensitivityPODBasisToFile();
 }
 
 
 template <int dim>
 void SensitivityPOD<dim>::saveSensitivityPODBasisToFile() {
-    std::ofstream out_file("POD_sens_basis.txt");
+    std::ofstream out_file("fullBasisStateAndSensitivity.txt");
     unsigned int precision = 7;
-    fullBasisSensitivity.print_formatted(out_file, precision);
+    fullBasisStateAndSensitivity.print_formatted(out_file, precision);
 }
 
 template <int dim>
@@ -39,7 +40,7 @@ bool SensitivityPOD<dim>::getSavedSensitivityPODBasis(){
     bool file_found = false;
     std::string path = this->all_parameters->reduced_order_param.path_to_search;
     for (const auto & entry : std::filesystem::directory_iterator(path)) {
-        if (std::string(entry.path().filename()).std::string::find("POD_sens_basis") != std::string::npos) {
+        if (std::string(entry.path().filename()).std::string::find("fullBasisStateAndSensitivity_qr") != std::string::npos) {
             this->pcout << "Processing " << entry.path() << std::endl;
             file_found = true;
             std::ifstream myfile(entry.path());
@@ -81,7 +82,7 @@ bool SensitivityPOD<dim>::getSavedSensitivityPODBasis(){
                 rows++;
             }
             myfile.close();
-            fullBasisSensitivity.copy_from(pod_basis_tmp);
+            fullBasisStateAndSensitivity.copy_from(pod_basis_tmp);
         }
     }
     return file_found;
@@ -183,6 +184,10 @@ bool SensitivityPOD<dim>::getSensitivityPODBasisFromSnapshots() {
         }
     }
      */
+
+    std::ofstream out_file("sensitivitySnapshots.txt");
+    unsigned int precision = 8;
+    sensitivitySnapshots.print_formatted(out_file, precision);
 
     this->pcout << "Sensitivity matrix generated." << std::endl;
 
@@ -352,6 +357,10 @@ void SensitivityPOD<dim>::buildStateAndSensitivityPODBasis() {
     fullBasisStateAndSensitivity.reinit(this->fullPODBasis->m(), this->fullPODBasis->n() + sensitivityBasis->n());
     fullBasisStateAndSensitivity.fill(*this->fullPODBasis, 0, 0, 0, 0);
     fullBasisStateAndSensitivity.fill(*sensitivityBasis, 0, this->fullPODBasis->n(), 0, 0);
+
+    std::ofstream out_file("fullBasisStateAndSensitivity.txt");
+    unsigned int precision = 7;
+    fullBasisStateAndSensitivity.print_formatted(out_file, precision);
 
     std::vector<int> row_index_set(fullBasisStateAndSensitivity.n_rows());
     std::iota(std::begin(row_index_set), std::end(row_index_set),0);

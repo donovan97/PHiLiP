@@ -1,6 +1,7 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 add_subdirectory(snapshot_generation_unsteady)
 add_subdirectory(snapshot_generation_steady)
+add_subdirectory(petrov_galerkin_testing)
 
 
 # =======================================

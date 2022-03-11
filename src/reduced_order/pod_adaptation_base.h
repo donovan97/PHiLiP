@@ -32,7 +32,7 @@ class PODAdaptation
 {
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
-protected:
+public:
     /// Functional
     Functional<dim,nstate,double> &functional;
 

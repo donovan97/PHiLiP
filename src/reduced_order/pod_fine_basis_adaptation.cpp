@@ -12,7 +12,7 @@ using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 template<int dim, int nstate>
 PODFineBasisAdaptation<dim, nstate>::PODFineBasisAdaptation(std::shared_ptr<DGBase<dim, double>> &dg_input, Functional<dim, nstate, double> &functional_input)
         : PODAdaptation<dim, nstate>(dg_input, functional_input)
-        , finePOD(std::make_unique<ProperOrthogonalDecomposition::FineExpandedPOD<dim>>(dg_input))
+        , finePOD(std::make_shared<ProperOrthogonalDecomposition::FineStatePOD<dim>>(dg_input))
 {}
 
 template <int dim, int nstate>
