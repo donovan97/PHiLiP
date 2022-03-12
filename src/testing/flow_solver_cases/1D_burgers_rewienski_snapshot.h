@@ -30,7 +30,7 @@ public:
     /// Destructor
     ~BurgersRewienskiSnapshot() {};
 
-    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb;
+    std::shared_ptr<dealii::LinearAlgebra::distributed::Vector<double>> sensitivity_dWdb;
 
 protected:
     const int number_of_refinements; ///< Number of cells per direction for the grid

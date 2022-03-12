@@ -20,7 +20,7 @@ namespace Tests {
 template <int dim, int nstate>
 BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-        , sensitivity_dWdb(dealii::LinearAlgebra::distributed::Vector<double>())
+        , sensitivity_dWdb(std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>())
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
@@ -99,8 +99,8 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     }
 
     //Apply inverse Jacobian
-    //dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dWdb(dg->n_dofs());
-    sensitivity_dWdb.reinit(dg->n_dofs());
+    dealii::LinearAlgebra::distributed::Vector<double> dWdb(dg->n_dofs());
+    //sensitivity_dWdb.reinit(dg->n_dofs());
     const bool compute_dRdW=true;
     const bool compute_dRdX=false;
     const bool compute_d2R=false;
@@ -111,17 +111,19 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     PHiLiP::Parameters::LinearSolverParam linear_solver_param;
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::direct;
 
-    solve_linear(dg->system_matrix, sensitivity_dRdb, sensitivity_dWdb, linear_solver_param);
+    solve_linear(dg->system_matrix, sensitivity_dRdb, dWdb, linear_solver_param);
 
     dealii::TableHandler solutions_table;
-    for (unsigned int i = 0; i < sensitivity_dWdb->size(); ++i) {
+    for (unsigned int i = 0; i < dWdb.size(); ++i) {
         solutions_table.add_value(
                 "Sensitivity:",
-                sensitivity_dWdb[i]);
+                dWdb[i]);
     }
+
     solutions_table.set_precision("Sensitivity:", 16);
     std::ofstream out_file(this->all_param.flow_solver_param.sensitivity_table_filename + ".txt");
     solutions_table.write_text(out_file);
+    sensitivity_dWdb->reinit(dWdb);
 }
 
 #if PHILIP_DIM==1

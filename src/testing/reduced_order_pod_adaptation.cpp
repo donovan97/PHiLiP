@@ -20,7 +20,7 @@
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "reduced_order/pod_full_dim_adaptation.h"
 #include "flow_solver.h"
-
+#include "reduced_order/adaptive_sampling.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -33,7 +33,15 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
+    double tolerance = 0.01;
+    std::vector<double> parameter_space = {0, 1};
+    std::shared_ptr<ProperOrthogonalDecomposition::AdaptiveSampling<dim, nstate>> sampling = std::make_shared<ProperOrthogonalDecomposition::AdaptiveSampling<dim, nstate>>(parameter_space, tolerance, all_parameters);
+    sampling->start();
 
+
+
+    return 0;
+    /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     pcout << "Running Burgers Rewienski with parameter a: "
@@ -107,7 +115,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
         pcout << "Adaptation tolerance reached." << std::endl;
         return 0;
     }
-
+    */
     /*
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
