@@ -19,9 +19,31 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     std::cout << "Starting adaptive sampling process" << std::endl;
 
     //Generate trial locations
-    int n = 10;
-    generateTrialLocations(n);
-    initializeSampling();
+    //int n = 10;
+    //generateTrialLocations(n);
+    //initializeSampling();
+
+    unsigned int n = 3;
+    dealii::Vector<double> x(7);
+    x(0) = 0.01;
+    x(1) = 0.0206;
+    x(2) = 0.0259;
+    x(3) = 0.0365;
+    x(4) = 0.0418;
+    x(5) = 0.0471;
+    x(6) = 0.1;
+    dealii::Vector<double> y(7);
+    y(0) = 3.139E-03;
+    y(1) = 3.111E-03;
+    y(2) = 3.091E-03;
+    y(3) = 3.037E-03;
+    y(4) = 3.003E-03;
+    y(5) = 2.962E-03;
+    y(6) = 2.346E-03;
+    dealii::Vector<double> poly = polyFit(x,y,n);
+    for(unsigned int i = 0 ; i < poly.size() ; i++){
+        std::cout << poly(i) <<std::endl;
+    }
 
 
     return 0;
@@ -66,8 +88,22 @@ void AdaptiveSampling<dim, nstate>::initializeSampling() const{
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updatePODBasis() const{
+dealii::Vector<double> AdaptiveSampling<dim, nstate>::polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const{
 
+    dealii::FullMatrix<double> vandermonde(x.size(), n+1);
+
+    for(unsigned int i = 0 ; i < x.size() ; i++){
+        for(unsigned int j = 0 ; j < n+1 ; j++){
+            vandermonde.set(i, j, std::pow(x(i), j));
+        }
+    }
+
+    dealii::Householder<double> householder(vandermonde);
+
+    dealii::Vector<double> coefficients(n+1);
+    householder.least_squares(coefficients, y);
+
+    return coefficients;
 }
 
 template <int dim, int nstate>

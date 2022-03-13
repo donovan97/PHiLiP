@@ -18,13 +18,16 @@
 #include "linear_solver/linear_solver.h"
 #include "testing/flow_solver.h"
 #include "reduced_order/snapshot.h"
+#include <deal.II/lac/householder.h>
 #include <cmath>
 #include <iostream>
 
 namespace PHiLiP {
 namespace Tests {
 
-/// Class to hold information about the reduced-order solution
+    using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
+
+    /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
 class AdaptiveSampling: public TestsBase
 {
@@ -55,6 +58,8 @@ public:
     void updatePODBasis() const;
 
     void updateErrors() const;
+
+    dealii::Vector<double> polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const;
 
     void updateSensitivityCurveFit() const;
 
