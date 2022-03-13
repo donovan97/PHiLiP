@@ -7,7 +7,7 @@ template <int dim, int nstate>
 FOMSolution<dim, nstate>::FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, dealii::LinearAlgebra::distributed::Vector<double> sensitivity)
         : sensitivity(sensitivity)
 {
-    state.reinit(dg_input->right_hand_side);
+    state = dg_input->solution;
 
     const bool compute_dIdW = false;
     const bool compute_dIdX = false;

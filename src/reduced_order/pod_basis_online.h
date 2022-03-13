@@ -37,6 +37,7 @@ public:
 
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> snapshotVectors;
 
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
 };
 

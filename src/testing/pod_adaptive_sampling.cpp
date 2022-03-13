@@ -6,6 +6,7 @@ namespace Tests {
 template<int dim, int nstate>
 AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
+    , current_pod(std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>())
     {
         tolerance = 0.001;
         std::vector<double> parameter_range = {0, 1};
@@ -20,20 +21,15 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     //Generate trial locations
     int n = 10;
     generateTrialLocations(n);
-    /*
-    for(int i = 0 ; i < n ; i++){
-        std::cout << trial_locations.front() << std::endl;
-        trial_locations.pop();
-    }
-    */
     initializeSampling();
+
 
     return 0;
 }
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::generateTrialLocations(int n) const{
-    std::cout << "Generating trial locations" << std::endl;
+    std::cout << "Generating trial locations:" << std::endl;
     for(int m = 1 ; m <= n ; m++){
         int base = 2;
         double q=0;
@@ -45,7 +41,7 @@ void AdaptiveSampling<dim, nstate>::generateTrialLocations(int n) const{
             i /= base;
             bk /= base;
         }
-
+        std::cout << q << std::endl;
         trial_locations.push_back(q);
     }
 }
@@ -54,19 +50,19 @@ template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::initializeSampling() const{
     int initialSnapshots = 2;
     for(int idx = 0 ; idx < initialSnapshots ; idx++){
-        std::cout << idx << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(trial_locations[idx]);
         ProperOrthogonalDecomposition::Snapshot<dim,nstate> snapshot = ProperOrthogonalDecomposition::Snapshot<dim,nstate>(trial_locations[idx], fom_solution);
         snapshots.push_back(snapshot);
+        current_pod->addSnapshot(fom_solution->state);
     }
-    /*
-    //assemble pod basis
+
+    current_pod->computeBasis();
+
     for(int idx = 0 ; idx < initialSnapshots ; idx++){
-        std::cout << idx << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = solveSnapshotROM(trial_locations[idx]);
         snapshots[idx].add_ROM(rom_solution);
     }
-    */
+
 }
 
 template <int dim, int nstate>

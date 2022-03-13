@@ -12,7 +12,7 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "reduced_order/pod_interfaces.h"
+#include "reduced_order/pod_basis_online.h"
 #include "reduced_order/reduced_order_solution.h"
 #include "reduced_order/full_order_solution.h"
 #include "linear_solver/linear_solver.h"
@@ -43,7 +43,7 @@ public:
 
     mutable std::vector<ProperOrthogonalDecomposition::Snapshot<dim,nstate>> snapshots;
 
-    mutable std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> current_pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
     /// Run test
     int run_test () const override;
