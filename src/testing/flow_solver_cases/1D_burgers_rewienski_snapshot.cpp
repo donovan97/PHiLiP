@@ -28,6 +28,16 @@ BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Pa
 }
 
 template <int dim, int nstate>
+void BurgersRewienskiSnapshot<dim,nstate>::display_flow_solver_setup() const
+{
+    this->pcout << "- PDE Type: Burgers Rewienski" << std::endl;
+    this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
+    this->pcout << "- Final time: " << this->all_param.flow_solver_param.final_time << std::endl;
+    this->pcout << "- Parameter a: " << this->all_param.burgers_param.rewienski_a << std::endl;
+    this->pcout << "- Parameter b: " << this->all_param.burgers_param.rewienski_b << std::endl;
+}
+
+template <int dim, int nstate>
 std::shared_ptr<Triangulation> BurgersRewienskiSnapshot<dim,nstate>::generate_grid() const
 {
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (

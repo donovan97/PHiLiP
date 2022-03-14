@@ -42,9 +42,13 @@ public:
 
     double tolerance;
 
-    mutable std::vector<double> trial_locations;
+    mutable std::vector<double> sampled_locations;
+
+    mutable std::vector<double> unsampled_locations;
 
     mutable std::vector<ProperOrthogonalDecomposition::Snapshot<dim,nstate>> snapshots;
+
+    double num_trial_locations;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
@@ -61,9 +65,11 @@ public:
 
     dealii::Vector<double> polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const;
 
-    void updateSensitivityCurveFit() const;
+    dealii::Vector<double> polyVal(dealii::Vector<double> polynomial, dealii::Vector<double> x) const;
 
-    void updateErrorCurveFit() const;
+    int updateSensitivityCurveFit() const;
+
+    double updateErrorCurveFit() const;
 
     void addSnapshot() const;
 

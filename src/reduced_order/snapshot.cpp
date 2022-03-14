@@ -8,6 +8,11 @@ Snapshot<dim, nstate>::Snapshot(double parameter, std::shared_ptr<ROMSolution<di
         : parameter(parameter)
         , rom_solution(rom_solution)
 {
+    std::cout << "Creating Snapshot with a ROM..." << std::endl;
+    compute_initial_rom_to_final_rom_error_estimate();
+    initial_rom_to_final_rom_error = 0;
+    compute_total_error();
+    std::cout << "Snapshot created with a ROM. Error estimate updated." << std::endl;
 }
 
 template <int dim, int nstate>
@@ -15,31 +20,67 @@ Snapshot<dim, nstate>::Snapshot(double parameter, std::shared_ptr<FOMSolution<di
         : parameter(parameter)
         , fom_solution(fom_solution)
 {
+    std::cout << "Creating Snapshot with a FOM..." << std::endl;
+    initial_rom_to_final_rom_error = 0;
+    fom_to_initial_rom_error = 0;
+    compute_total_error();
+    std::cout << "Snapshot created with a FOM. Error estimate set to 0." << std::endl;
 }
 
 template <int dim, int nstate>
 void Snapshot<dim, nstate>::add_FOM(std::shared_ptr<FOMSolution<dim, nstate>> fom_solution_input){
+    std::cout << "Adding FOM to snapshot..." << std::endl;
     fom_solution = fom_solution_input;
     compute_FOM_to_initial_ROM_error();
     initial_rom_to_final_rom_error = 0;
     compute_total_error();
+    std::cout << "FOM added to snapshot. Error estimate updated." << std::endl;
 }
 
 template <int dim, int nstate>
 void Snapshot<dim, nstate>::add_ROM(std::shared_ptr<ROMSolution<dim, nstate>> rom_solution_input){
+    std::cout << "Adding ROM to snapshot..." << std::endl;
     rom_solution = rom_solution_input;
     compute_FOM_to_initial_ROM_error();
     initial_rom_to_final_rom_error = 0;
     compute_total_error();
+    std::cout << "ROM added to snapshot. Error estimate updated." << std::endl;
+
 }
 
 template <int dim, int nstate>
 void Snapshot<dim, nstate>::compute_FOM_to_initial_ROM_error(){
+    std::cout << "Computing exact error between ROM and FOM..." << std::endl;
     fom_to_initial_rom_error = rom_solution->functional_value - fom_solution->functional_value;
+    std::cout << "Exact error between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
+}
+
+template <int dim, int nstate>
+void Snapshot<dim, nstate>::compute_initial_rom_to_final_rom_error_estimate(){
+    std::cout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side.size());
+    dealii::LinearAlgebra::distributed::Vector<double> dualWeightedResidual(rom_solution->right_hand_side.size());
+
+    Parameters::LinearSolverParam linear_solver_param;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
+    solve_linear(*rom_solution->system_matrix_transpose, rom_solution->gradient*=-1.0, adjoint, linear_solver_param);
+
+    //Compute dual weighted residual
+    fom_to_initial_rom_error = 0;
+    std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Adjoint" << std::setw(20) << std::left << "Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
+    for(unsigned int i = 0; i < adjoint.size(); i++){
+        dualWeightedResidual[i] = -(adjoint[i] * rom_solution->right_hand_side[i]);
+        fom_to_initial_rom_error = fom_to_initial_rom_error + dualWeightedResidual[i];
+        std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << adjoint[i] << std::setw(20) << std::left << rom_solution->right_hand_side[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
+    }
+    std::cout << "Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void Snapshot<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated){
+    std::cout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
+
     using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
     //Initialize
     DealiiVector fineGradient(pod_updated->getPODBasis()->n());
@@ -72,12 +113,14 @@ void Snapshot<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_p
         initial_rom_to_final_rom_error = initial_rom_to_final_rom_error + dualWeightedResidual[i];
         std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << fineAdjoint[i] << std::setw(20) << std::left << fineResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
-    std::cout << std::endl << "initial_rom_to_final_rom_error: " << initial_rom_to_final_rom_error << std::endl;
+    std::cout << "Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void Snapshot<dim, nstate>::compute_total_error(){
+    std::cout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error + initial_rom_to_final_rom_error;
+    std::cout << "Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
 

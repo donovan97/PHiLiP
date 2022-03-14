@@ -10,11 +10,14 @@ OnlinePOD<dim>::OnlinePOD()
 
 template <int dim>
 void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
+    std::cout << "Adding new snapshot to POD basis..." << std::endl;
     snapshotVectors.push_back(snapshot);
 }
 
 template <int dim>
 void OnlinePOD<dim>::computeBasis() {
+    std::cout << "Computing POD basis..." << std::endl;
+
     dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotVectors[0].size(), snapshotVectors.size());
 
     for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){
@@ -38,6 +41,7 @@ void OnlinePOD<dim>::computeBasis() {
 
     basis->reinit(basis_tmp);
     basis->copy_from(basis_tmp);
+    std::cout << "Done computing POD basis..." << std::endl;
 }
 
 template <int dim>
