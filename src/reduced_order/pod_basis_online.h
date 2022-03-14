@@ -23,7 +23,7 @@ class OnlinePOD: public POD<dim>
 {
 public:
     /// Constructor
-    OnlinePOD();
+    OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     /// Destructor
     ~OnlinePOD () {};
@@ -38,6 +38,8 @@ public:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> snapshotVectors;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
+
+    dealii::LAPACKFullMatrix<double> massMatrix;
 
 };
 

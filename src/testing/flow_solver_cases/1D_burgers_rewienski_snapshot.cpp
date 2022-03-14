@@ -20,7 +20,7 @@ namespace Tests {
 template <int dim, int nstate>
 BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : FlowSolverCaseBase<dim, nstate>(parameters_input)
-        , sensitivity_dWdb(std::make_shared<dealii::LinearAlgebra::distributed::Vector<double>>())
+        , sensitivity_dWdb_l2norm(0)
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.grid_refinement_study_param.grid_left)
         , domain_right(this->all_param.grid_refinement_study_param.grid_right)
@@ -133,7 +133,7 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     solutions_table.set_precision("Sensitivity:", 16);
     std::ofstream out_file(this->all_param.flow_solver_param.sensitivity_table_filename + ".txt");
     solutions_table.write_text(out_file);
-    sensitivity_dWdb->reinit(dWdb);
+    sensitivity_dWdb_l2norm = dWdb.l2_norm();
 }
 
 #if PHILIP_DIM==1

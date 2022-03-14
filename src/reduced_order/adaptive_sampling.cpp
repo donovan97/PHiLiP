@@ -84,7 +84,7 @@ std::shared_ptr<FOMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSna
     //Get sensitivity from FlowSolver
     //std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim,nstate>> burgers_rewienski_snapshot = std::dynamic_pointer_cast<Tests::BurgersRewienskiSnapshot<dim,nstate>>(flow_solver->flow_solver_case);
 
-    std::shared_ptr<FOMSolution<dim,nstate>> fom_solution = std::make_shared<FOMSolution<dim, nstate>>(flow_solver->dg, functional, *flow_solver_case->sensitivity_dWdb);
+    std::shared_ptr<FOMSolution<dim,nstate>> fom_solution = std::make_shared<FOMSolution<dim, nstate>>(flow_solver->dg, functional, flow_solver_case->sensitivity_dWdb_l2norm);
 
     return fom_solution;
 }

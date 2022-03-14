@@ -6,12 +6,15 @@ namespace Tests {
 template<int dim, int nstate>
 AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
-    , current_pod(std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>())
     {
-        tolerance = 0.0001;
-        num_trial_locations = 100;
+        tolerance = 0.000001;
+        num_trial_locations = 35;
         std::vector<double> parameter_range = {0.01, 0.1};
         parameter_space = parameter_range;
+
+        std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
+        std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
+        current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
     }
 
 template <int dim, int nstate>
@@ -50,45 +53,6 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             }
         }
     }
-
-
-
-    /*
-    unsigned int n = 3;
-    dealii::Vector<double> x(7);
-    x(0) = 0.01;
-    x(1) = 0.0206;
-    x(2) = 0.0259;
-    x(3) = 0.0365;
-    x(4) = 0.0418;
-    x(5) = 0.0471;
-    x(6) = 0.1;
-    dealii::Vector<double> y(7);
-    y(0) = 3.139E-03;
-    y(1) = 3.111E-03;
-    y(2) = 3.091E-03;
-    y(3) = 3.037E-03;
-    y(4) = 3.003E-03;
-    y(5) = 2.962E-03;
-    y(6) = 2.346E-03;
-    dealii::Vector<double> poly = polyFit(x,y,n);
-    for(unsigned int i = 0 ; i < poly.size() ; i++){
-        std::cout << poly(i) <<std::endl;
-    }
-
-    dealii::Vector<double> x2(100);
-    double dx = (0.1-0.01)/100;
-    for(unsigned int i = 0 ; i < x2.size() ; i++){
-        x2(i) = i*dx + 0.01;
-    }
-    dealii::Vector<double> val = polyVal(poly, x2);
-
-    for(unsigned int i = 0 ; i < val.size() ; i++){
-        std::cout << val(i) <<std::endl;
-    }
-    */
-
-
     return 0;
 }
 
@@ -106,6 +70,7 @@ void AdaptiveSampling<dim, nstate>::generateTrialLocations(int n) const{
             i /= base;
             bk /= base;
         }
+        q = q*(parameter_space[1] - parameter_space[0]) + parameter_space[0];
         std::cout << q << std::endl;
         unsampled_locations.push_back(q);
     }
@@ -119,8 +84,9 @@ int AdaptiveSampling<dim, nstate>::updateSensitivityCurveFit() const{
     dealii::Vector<double> sensitivities(sampled_locations.size());
     dealii::Vector<double> parameters(sampled_locations.size());
     for(unsigned int i = 0 ; i < sampled_locations.size() ; i++){
-        sensitivities[i] = snapshots[i].fom_solution->sensitivity.l2_norm();
+        sensitivities[i] = snapshots[i].fom_solution->sensitivity;
         parameters[i] = snapshots[i].parameter;
+        std::cout << "Sensitivity: " << sensitivities[i] << " Parameter: " << parameters[i] << std::endl;
     }
 
     dealii::Vector<double> polynomial = polyFit(parameters, sensitivities, 3);
@@ -156,6 +122,7 @@ double AdaptiveSampling<dim, nstate>::updateErrorCurveFit() const{
     for(unsigned int i = 0 ; i < sampled_locations.size() ; i++){
         errors[i] = snapshots[i].total_error;
         parameters[i] = snapshots[i].parameter;
+        std::cout << "Error: " << errors[i] << " Parameter: " << parameters[i] << std::endl;
     }
 
     dealii::Vector<double> polynomial = polyFit(parameters, errors, 3);
@@ -248,8 +215,8 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
     std::cout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
+    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
@@ -262,7 +229,8 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
     // Create functional
     auto functional = BurgersRewienskiFunctional2<dim,nstate,double>(flow_solver->dg,dg_state->pde_physics_fad_fad,true,false);
     //Get sensitivity from FlowSolver
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, functional, *flow_solver_case->sensitivity_dWdb);
+    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = std::make_shared<ProperOrthogonalDecomposition::FOMSolution<dim, nstate>>(flow_solver->dg, functional, flow_solver_case->sensitivity_dWdb_l2norm);
+
     std::cout << "Done solving FOM." << std::endl;
     return fom_solution;
 }
@@ -272,8 +240,8 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::cout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
-    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
+    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;

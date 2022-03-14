@@ -46,10 +46,12 @@ subsection reduced order
 end
 
 subsection linear solver
+  set linear_solver_output = quiet
   set linear_solver_type = direct
 end
 
 subsection ODE solver
+  set ode_output = quiet
   set nonlinear_max_iterations = 50
   set nonlinear_steady_residual_tolerance = 1e-14
   set print_iteration_modulo  = 1

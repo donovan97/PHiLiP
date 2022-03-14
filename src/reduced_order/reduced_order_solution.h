@@ -28,15 +28,16 @@ public:
     /// Destructor
     virtual ~ROMSolution () {};
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
+    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
 
-    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
+    const dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
+    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
-    dealii::LinearAlgebra::distributed::Vector<double> gradient;
+    const double functional_value;
 
-    double functional_value;
+    const dealii::LinearAlgebra::distributed::Vector<double> gradient;
+
 };
 
 }

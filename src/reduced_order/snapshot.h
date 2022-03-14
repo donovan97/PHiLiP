@@ -42,7 +42,7 @@ public:
 
     void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated);
 
-    void compute_initial_rom_to_final_rom_error_estimate();
+    void compute_FOM_to_initial_ROM_error_estimate();
 
     void compute_total_error();
 

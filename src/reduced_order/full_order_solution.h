@@ -23,16 +23,16 @@ class FOMSolution
 {
 public:
     /// Constructor
-    FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, dealii::LinearAlgebra::distributed::Vector<double> sensitivity);
+    FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, double sensitivity);
 
     /// Destructor
     virtual ~FOMSolution () {};
 
-    dealii::LinearAlgebra::distributed::Vector<double> state;
+    const dealii::LinearAlgebra::distributed::Vector<double> state;
 
-    dealii::LinearAlgebra::distributed::Vector<double> sensitivity;
+    const double sensitivity;
 
-    double functional_value;
+    const double functional_value;
 };
 
 }
