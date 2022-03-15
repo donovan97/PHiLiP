@@ -63,8 +63,10 @@ void Snapshot<dim, nstate>::compute_FOM_to_initial_ROM_error_estimate(){
     dealii::LinearAlgebra::distributed::Vector<double> dualWeightedResidual(rom_solution->right_hand_side.size());
 
     gradient = rom_solution->gradient;
+
     dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
-    system_matrix_transpose.reinit(*rom_solution->system_matrix_transpose);
+    system_matrix_transpose.reinit(rom_solution->system_matrix_transpose);
+    system_matrix_transpose.copy_from(rom_solution->system_matrix_transpose);
 
     Parameters::LinearSolverParam linear_solver_param;
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
@@ -96,7 +98,7 @@ void Snapshot<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_p
 
     dealii::TrilinosWrappers::SparseMatrix tmp;
     dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
-    pod_updated->getPODBasis()->Tmmult(tmp, *rom_solution->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
+    pod_updated->getPODBasis()->Tmmult(tmp, rom_solution->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
     tmp.mmult(fineJacobianTranspose, *pod_updated->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
 
     dealii::ParameterHandler parameter_handler;

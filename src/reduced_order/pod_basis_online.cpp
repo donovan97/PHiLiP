@@ -64,6 +64,10 @@ void OnlinePOD<dim>::computeBasis() {
     snapshot_matrix.mmult(fullBasis, tmp);
     std::cout << "HERE5" << std::endl;
 
+    std::ofstream out_file("POD_adaptation_basis.txt");
+    unsigned int precision = 7;
+    fullBasis.print_formatted(out_file, precision);
+
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(snapshotVectors[0].size(), snapshotVectors.size(), snapshotVectors.size());
     std::cout << snapshotVectors[0].size() << " " << snapshotVectors.size() << std::endl;
     for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){

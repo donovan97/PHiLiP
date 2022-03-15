@@ -8,9 +8,12 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
     : TestsBase::TestsBase(parameters_input)
     {
         tolerance = 0.000001;
-        num_trial_locations = 35;
+        num_trial_locations = 70;
         std::vector<double> parameter_range = {0.01, 0.1};
-        parameter_space = parameter_range;
+        parameter_space_error = parameter_range;
+        parameter_space_snapshots = {parameter_range[0]/1.5 , parameter_range[1]*1.5};
+
+        data_table = std::make_shared<dealii::TableHandler>();
 
         std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
         std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
@@ -36,8 +39,17 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         snapshots.push_back(snapshot);
 
         max_error = updateErrorCurveFit();
+        data_table->add_value("Max error", max_error);
+        data_table->set_precision("Max error", 16);
+        std::ofstream data_table_file("POD_adaptation_data_table.txt");
+        data_table->write_text(data_table_file);
 
         if(max_error < tolerance){
+            std::cout << "Max error is smaller than tolerance." << std::endl;
+            break;
+        }
+        else if(unsampled_locations.empty()){
+            std::cout << "No more locations to sample. Tolerance not achieved." << std::endl;
             break;
         }
         else{
@@ -70,7 +82,7 @@ void AdaptiveSampling<dim, nstate>::generateTrialLocations(int n) const{
             i /= base;
             bk /= base;
         }
-        q = q*(parameter_space[1] - parameter_space[0]) + parameter_space[0];
+        q = q*(parameter_space_snapshots[1] - parameter_space_snapshots[0]) + parameter_space_snapshots[0];
         std::cout << q << std::endl;
         unsampled_locations.push_back(q);
     }
@@ -137,13 +149,17 @@ double AdaptiveSampling<dim, nstate>::updateErrorCurveFit() const{
 
     double max_error = abs(estimated_error[0]);
     for(unsigned int i = 0 ; i < estimated_error.size() ; i++){
-        if(abs(estimated_error[i]) > max_error){
-            max_error = abs(estimated_error[i]);
+        if((unsampled[i] >= parameter_space_error[0]) && (unsampled[i] <= parameter_space_error[1])){
+            if(abs(estimated_error[i]) > max_error){
+                max_error = abs(estimated_error[i]);
+            }
         }
     }
     for(unsigned int i = 0 ; i < errors.size() ; i++){
-        if(abs(errors[i]) > max_error){
-            max_error = abs(errors[i]);
+        if((parameters[i] >= parameter_space_error[0]) && (parameters[i] <= parameter_space_error[1])) {
+            if (abs(errors[i]) > max_error) {
+                max_error = abs(errors[i]);
+            }
         }
     }
 
@@ -154,7 +170,7 @@ double AdaptiveSampling<dim, nstate>::updateErrorCurveFit() const{
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::initializeSampling() const{
-    int initialSnapshots = 2;
+    int initialSnapshots = 10;
     for(int idx = 0 ; idx < initialSnapshots ; idx++){
         std::cout << "Sampling initial snapshot at " << unsampled_locations[unsampled_locations.front()] << std::endl;
         sampled_locations.push_back(unsampled_locations[unsampled_locations.front()]);

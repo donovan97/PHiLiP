@@ -28,7 +28,7 @@ public:
     /// Destructor
     virtual ~ROMSolution () {};
 
-    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
+    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
 
     const dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 

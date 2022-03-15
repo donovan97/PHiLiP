@@ -38,9 +38,13 @@ public:
     /// Destructor
     virtual ~AdaptiveSampling() {};
 
-    std::vector<double> parameter_space;
+    std::vector<double> parameter_space_error;
+
+    std::vector<double> parameter_space_snapshots;
 
     double tolerance;
+
+    std::shared_ptr<dealii::TableHandler> data_table;
 
     mutable std::vector<double> sampled_locations;
 
