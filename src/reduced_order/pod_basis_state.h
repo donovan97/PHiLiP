@@ -19,7 +19,7 @@ namespace ProperOrthogonalDecomposition {
 
 /// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
-class StatePOD: public POD<dim>
+class StatePOD
 {
 public:
     /// Constructor

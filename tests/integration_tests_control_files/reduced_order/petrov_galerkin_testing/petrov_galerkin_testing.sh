@@ -46,12 +46,12 @@ echo "#Reduced order parameters">> $file
 echo "subsection reduced order">> $file
 echo "  set adaptation_tolerance = 1E-16">> $file
 echo "  set adapt_coarse_basis_constant = 2">> $file
-echo "  set coarse_basis_dimension = 19">> $file
-echo "  set fine_basis_dimension = 19">> $file
-echo "  set num_sensitivities = 19">> $file
-echo "  set coarse_expanded_basis_dimension = 6">> $file
-echo "  set fine_expanded_basis_dimension = 38">> $file
-echo "  set path_to_search = ./pod_basis/burgers_rewienski_sensitivity_1param_gapupper/">> $file
+echo "  set coarse_basis_dimension = 16">> $file
+echo "  set fine_basis_dimension = 16">> $file
+echo "  set num_sensitivities = 16">> $file
+echo "  set coarse_expanded_basis_dimension = 32">> $file
+echo "  set fine_expanded_basis_dimension = 32">> $file
+echo "  set path_to_search = ./pod_basis/burgers_rewienski_consistent_fine/">> $file
 echo "  set method_of_snapshots = true">> $file
 echo "  set consider_error_sign = false">> $file
 echo "end">> $file

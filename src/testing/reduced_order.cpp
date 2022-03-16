@@ -72,7 +72,7 @@ int ReducedOrder<dim, nstate>::run_test() const
     dg_implicit->allocate_system ();
 
     //will use all basis functions
-    std::shared_ptr<ProperOrthogonalDecomposition::StatePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::StatePOD<dim>>(dg_implicit);
+    std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(dg_implicit);
 
     dealii::VectorTools::interpolate(dg_implicit->dof_handler,initial_condition,dg_implicit->solution);
 
