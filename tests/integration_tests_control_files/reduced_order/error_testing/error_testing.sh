@@ -4,13 +4,13 @@ rewienski_a=( 3.0000   3.0000     3.0000
               3.0000   3.0000     3.0000
               3.0000   3.0000     3.0000
               3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000
-              3.0000   3.0000     3.0000 3.000 3.000)
+              3.0000   3.0000     3.0000)
 
-rewienski_b=(  0.055 0.0325 0.0775 0.02125 0.06625 0.04375 0.08875 0.015625
-                0.060625 0.038125 0.0985938 0.0971875 0.09578 0.094375 0.0929688
-                0.0915625 0.0901563 0.0873438 0.0859375 0.0845313 0.083125 0.0817188)
+rewienski_b=( 0.01  0.0153  0.0206
+              0.0233   0.0259   0.0312
+              0.0365   0.0392   0.0418
+               0.0471   0.0524 0.0643
+               0.0762    0.0881    0.1)
 
 for ((i = 0 ; i < ${#rewienski_a[@]} ; i++)); do
 
@@ -48,7 +48,7 @@ echo "  set adaptation_tolerance = 1E-16">> $file
 echo "  set adapt_coarse_basis_constant = 2">> $file
 echo "  set coarse_basis_dimension = 17">> $file
 echo "  set fine_basis_dimension =17">> $file
-echo "  set path_to_search = ./burgers_rewienski_gapupper2">> $file
+echo "  set path_to_search = ./burgers_rewienski_consistent_50">> $file
 echo "  set method_of_snapshots = true">> $file
 echo "  set consider_error_sign = false">> $file
 echo "end">> $file
@@ -59,7 +59,7 @@ echo "end">> $file
 echo " ">> $file
 echo "subsection ODE solver">> $file
 echo "  set nonlinear_max_iterations = 50">> $file
-echo "  set nonlinear_steady_residual_tolerance = 1e-14">> $file
+echo "  set nonlinear_steady_residual_tolerance = 1e-15">> $file
 echo "  set print_iteration_modulo  = 1">> $file
 echo "  set ode_solver_type = implicit">> $file
 echo "end">> $file

@@ -20,6 +20,12 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
 
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg_test = flow_solver_1->dg;
 
+    dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver_1->dg->solution;
+
+    for(unsigned int i = 0 ; i < initial_conditions.size(); i++){
+        //std::cout << initial_conditions[i] << std::endl;
+    }
+
     dealii::TableHandler sensitivity_table;
     dealii::TableHandler solutions_table;
 
@@ -29,23 +35,25 @@ int FiniteDifferenceSensitivity<dim, nstate>::run_test() const
 
     if(this->all_parameters->flow_solver_param.steady_state == true){
         flow_solver_1->ode_solver->steady_state();
-        flow_solver_2->ode_solver->steady_state();
+        //flow_solver_2->ode_solver->steady_state();
 
         solution1 = flow_solver_1->dg->solution;
-        solution2 = flow_solver_2->dg->solution;
+        //solution2 = flow_solver_2->dg->solution;
         sensitivity_dWdParam(solution1.size());
 
         for(unsigned int i = 0 ; i < solution1.size(); i++){
             sensitivity_dWdParam[i] = (solution2[i] - solution1[i]) / h;
             sensitivity_table.add_value("Sensitivity:", sensitivity_dWdParam[i]);
-            solutions_table.add_value("Solution:", solution1[i]);
+            solutions_table.add_value("Solution:", solution1[i]-initial_conditions[i]);
+            sensitivity_table.set_precision("Sensitivity:", 16);
+            solutions_table.set_precision("Solution:", 16);
         }
 
         std::ofstream sensitivity_out("steady_state_sensitivity_snapshots.txt");
-        std::ofstream solutions_out("steady_state_solution_snapshots.txt");
-        sensitivity_table.set_precision("Sensitivity:", 16);
-        sensitivity_table.set_precision("Solution:", 16);
-        sensitivity_table.write_text(sensitivity_out);
+        std::ofstream solutions_out(this->all_parameters->ode_solver_param.solutions_table_filename + ".txt");
+        //sensitivity_table.set_precision("Sensitivity:", 16);
+        solutions_table.set_precision("Solution:", 16);
+        //sensitivity_table.write_text(sensitivity_out);
         solutions_table.write_text(solutions_out);
     }
     else{

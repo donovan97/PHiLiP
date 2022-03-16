@@ -41,7 +41,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     auto functional_implicit = BurgersRewienskiFunctional<dim,nstate,double>(flow_solver_implicit->dg, dg_state_implicit->pde_physics_fad_fad, true, false);
 
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_standard = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
-    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     std::shared_ptr<ProperOrthogonalDecomposition::CoarseStatePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::CoarseStatePOD<dim>>(flow_solver_standard->dg);
     flow_solver_standard->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_standard->dg, pod_standard);
     flow_solver_standard->ode_solver->allocate_ode_system();
