@@ -5,7 +5,7 @@ set(SOURCE
     pod_basis_sensitivity.cpp
     pod_basis_sensitivity_types.cpp
     pod_fine_basis_adaptation.cpp
-    pod_full_dim_adaptation.cpp adaptive_sampling.cpp adaptive_sampling.h full_order_solution.cpp full_order_solution.h reduced_order_solution.cpp reduced_order_solution.h snapshot.cpp snapshot.h pod_basis_online.cpp pod_basis_online.h)
+    pod_full_dim_adaptation.cpp full_order_solution.cpp full_order_solution.h reduced_order_solution.cpp reduced_order_solution.h rom_test_location.cpp rom_test_location.h pod_basis_online.cpp pod_basis_online.h)
 
 foreach(dim RANGE 1 3)
     # Output library

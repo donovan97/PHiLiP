@@ -7,17 +7,16 @@ template<int dim, int nstate>
 AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
     {
-        tolerance = 0.000001;
-        num_trial_locations = 70;
+
         std::vector<double> parameter_range = {0.01, 0.1};
-        parameter_space_error = parameter_range;
-        parameter_space_snapshots = {parameter_range[0]/1.5 , parameter_range[1]*1.5};
+        parameter_space = parameter_range;
 
         data_table = std::make_shared<dealii::TableHandler>();
 
         std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
         std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(all_parameters, flow_solver_case);
         current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
+
     }
 
 template <int dim, int nstate>
@@ -25,167 +24,140 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 {
     std::cout << "Starting adaptive sampling process" << std::endl;
 
-    //Generate trial locations
-    generateTrialLocations(num_trial_locations);
-    initializeSampling();
+    int n = 2;
+    initializeSampling(n);
 
     double max_error = 1;
-    while(max_error > tolerance){
-        int idx = updateSensitivityCurveFit();
-        sampled_locations.push_back(unsampled_locations[idx]);
-        unsampled_locations.erase(unsampled_locations.begin()+idx);
-        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = solveSnapshotROM(sampled_locations.back());
-        ProperOrthogonalDecomposition::Snapshot<dim,nstate> snapshot = ProperOrthogonalDecomposition::Snapshot<dim,nstate>(sampled_locations.back(), rom_solution);
-        snapshots.push_back(snapshot);
+    double tolerance = 0.00001;
+    //double max_parameter = getMaxErrorROM();
+    /*
+    double parameter = parameter_space[0];
+    Parameters::AllParameters params = reinitParams(parameter);
+    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
+    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
+    */
+    while(abs(max_error) > tolerance){
+        /*
+        std::cout << "Sampling snapshot at " << max_parameter << std::endl;
+        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_parameter);
+        std::cout << "here4" << std::endl;
+        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
+        std::cout << "here5" << std::endl;
+        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        std::cout << "here6" << std::endl;
+        current_pod->computeBasis();
+        std::cout << "here7" << std::endl;
 
-        max_error = updateErrorCurveFit();
-        data_table->add_value("Max error", max_error);
-        data_table->set_precision("Max error", 16);
-        std::ofstream data_table_file("POD_adaptation_data_table.txt");
-        data_table->write_text(data_table_file);
-
-        if(max_error < tolerance){
-            std::cout << "Max error is smaller than tolerance." << std::endl;
-            break;
-        }
-        else if(unsampled_locations.empty()){
-            std::cout << "No more locations to sample. Tolerance not achieved." << std::endl;
-            break;
-        }
-        else{
-            std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(sampled_locations.back());
-            snapshots.back().add_FOM(fom_solution);
-            current_pod->addSnapshot(fom_solution->state);
-            current_pod->computeBasis();
-
-            //Update initial_rom_to_final_rom_error for each snapshot
-            for(auto &snap : snapshots){
-                snap.compute_initial_rom_to_final_rom_error(current_pod);
-                snap.compute_total_error();
+        //Find adjacent FOMS
+        double parameter_before = parameter_space[0];
+        double parameter_after = parameter_space[1];
+        for(unsigned int i = 0 ; i < sampled_locations.size() ; i++){
+            if(sampled_locations[i] >= parameter_before && sampled_locations[i] < max_parameter){
+                std::cout << "FOM sampled before is " << sampled_locations[i] << std::endl;
+                parameter_before = sampled_locations[i];
+            }
+            if(sampled_locations[i] <= parameter_after && sampled_locations[i] > max_parameter) {
+                std::cout << "FOM sampled after is " << sampled_locations[i] << std::endl;
+                parameter_after = sampled_locations[i];
             }
         }
+        std::cout << "HERE1" << std::endl;
+        //Get new ROM locations
+        double new_location1 = (parameter_before + max_parameter)/2;
+        double new_location2 = (parameter_after + max_parameter)/2;
+        std::cout << "HERE2" << std::endl;
+        //Remove location from ROM sampled locations and add to FOM sampled locations
+        sampled_locations.push_back(max_parameter);
+
+        std::cout << "HERE2.1" << std::endl;
+        std::cout << "HERE2.2" << std::endl;
+        rom_locations.find(max_parameter)->second = nullptr;
+        rom_locations.erase(max_parameter);
+        std::cout << "HERE3" << std::endl;
+        //Update previous ROM errors
+        for(auto& [key, value] : rom_locations){
+            value->compute_initial_rom_to_final_rom_error(current_pod);
+            value->compute_total_error();
+        }
+        std::cout << "HERE4" << std::endl;
+        //Sample ROMs at new locations
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution1 = solveSnapshotROM(new_location1);
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location1 = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(new_location1, rom_solution1);
+        rom_locations.emplace(new_location1, rom_location1);
+
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution2 = solveSnapshotROM(new_location2);
+        std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location2 = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(new_location2, rom_solution2);
+        rom_locations.emplace(new_location2, rom_location2);
+
+        max_parameter = getMaxErrorROM();
+        max_error = rom_locations.at(max_parameter)->total_error;
+        std::cout << "Max error is: " << max_error;
+         */
+        //rom_locations.clear();
+        max_error = 0;
+
     }
+    std::cout << "done" << std::endl;
+    rom_locations.clear();
+    std::cout << "done2" << std::endl;
+
     return 0;
 }
 
-template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::generateTrialLocations(int n) const{
-    std::cout << "Generating trial locations:" << std::endl;
-    for(int m = 1 ; m <= n ; m++){
-        int base = 2;
-        double q=0;
-        double bk=(double)1/base;
-        int i = m;
-
-        while (i > 0) {
-            q += (i % base)*bk;
-            i /= base;
-            bk /= base;
-        }
-        q = q*(parameter_space_snapshots[1] - parameter_space_snapshots[0]) + parameter_space_snapshots[0];
-        std::cout << q << std::endl;
-        unsampled_locations.push_back(q);
-    }
-}
-
-// Update sensitivity curve fit and return parameter location where snapshot should be added
-template <int dim, int nstate>
-int AdaptiveSampling<dim, nstate>::updateSensitivityCurveFit() const{
-    std::cout << "Updating sensitivity curve fit..." << std::endl;
-
-    dealii::Vector<double> sensitivities(sampled_locations.size());
-    dealii::Vector<double> parameters(sampled_locations.size());
-    for(unsigned int i = 0 ; i < sampled_locations.size() ; i++){
-        sensitivities[i] = snapshots[i].fom_solution->sensitivity;
-        parameters[i] = snapshots[i].parameter;
-        std::cout << "Sensitivity: " << sensitivities[i] << " Parameter: " << parameters[i] << std::endl;
-    }
-
-    dealii::Vector<double> polynomial = polyFit(parameters, sensitivities, 3);
-
-    dealii::Vector<double> unsampled(unsampled_locations.size());
-
-    for(unsigned int i = 0 ; i < unsampled_locations.size() ; i++){
-        unsampled[i] = unsampled_locations[i];
-    }
-
-    dealii::Vector<double> estimated_sensitivity = polyVal(polynomial, unsampled);
-
-    double max = abs(estimated_sensitivity[0]);
-    unsigned int max_idx = 0;
-    for(unsigned int i = 0 ; i < estimated_sensitivity.size() ; i++){
-        if(abs(estimated_sensitivity[i]) > max){
-            max = abs(estimated_sensitivity[i]);
-            max_idx = i;
-        }
-    }
-
-    std::cout << "Sensitivity curve fit updated. Maximum sensitivity is " << max << " at index " << max_idx << std::endl;
-
-    return max_idx;
-}
 
 template <int dim, int nstate>
-double AdaptiveSampling<dim, nstate>::updateErrorCurveFit() const{
+double AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     std::cout << "Updating error curve fit..." << std::endl;
-
-    dealii::Vector<double> errors(sampled_locations.size());
-    dealii::Vector<double> parameters(sampled_locations.size());
-    for(unsigned int i = 0 ; i < sampled_locations.size() ; i++){
-        errors[i] = snapshots[i].total_error;
-        parameters[i] = snapshots[i].parameter;
-        std::cout << "Error: " << errors[i] << " Parameter: " << parameters[i] << std::endl;
-    }
-
-    dealii::Vector<double> polynomial = polyFit(parameters, errors, 3);
-
-    dealii::Vector<double> unsampled(unsampled_locations.size());
-
-    for(unsigned int i = 0 ; i < unsampled_locations.size() ; i++){
-        unsampled[i] = unsampled_locations[i];
-    }
-
-    dealii::Vector<double> estimated_error = polyVal(polynomial, unsampled);
-
-    double max_error = abs(estimated_error[0]);
-    for(unsigned int i = 0 ; i < estimated_error.size() ; i++){
-        if((unsampled[i] >= parameter_space_error[0]) && (unsampled[i] <= parameter_space_error[1])){
-            if(abs(estimated_error[i]) > max_error){
-                max_error = abs(estimated_error[i]);
-            }
+    double max_parameter = 1;
+    /*
+    //Set errors at ROM locations
+    double max_parameter = 0;
+    double max_error = 0;
+    for(auto& [key, value] : rom_locations){
+        if(abs(max_error) < abs(value->total_error)){
+            max_parameter = value->parameter;
+            std::cout << "Here " << max_parameter << std::endl;
         }
+        std::cout << "Error: " << value->total_error << " Parameter: " << value->parameter << std::endl;
     }
-    for(unsigned int i = 0 ; i < errors.size() ; i++){
-        if((parameters[i] >= parameter_space_error[0]) && (parameters[i] <= parameter_space_error[1])) {
-            if (abs(errors[i]) > max_error) {
-                max_error = abs(errors[i]);
-            }
-        }
-    }
+     */
+    std::cout << "Here1 " << max_parameter << std::endl;
 
-    std::cout << "Error curve fit updated. Maximum error is " << max_error << std::endl;
-
-    return max_error;
+    return max_parameter;
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::initializeSampling() const{
-    int initialSnapshots = 10;
-    for(int idx = 0 ; idx < initialSnapshots ; idx++){
-        std::cout << "Sampling initial snapshot at " << unsampled_locations[unsampled_locations.front()] << std::endl;
-        sampled_locations.push_back(unsampled_locations[unsampled_locations.front()]);
-        unsampled_locations.erase(unsampled_locations.begin());
-        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(sampled_locations[idx]);
-        ProperOrthogonalDecomposition::Snapshot<dim,nstate> snapshot = ProperOrthogonalDecomposition::Snapshot<dim,nstate>(sampled_locations[idx], fom_solution);
-        snapshots.push_back(snapshot);
-        current_pod->addSnapshot(fom_solution->state);
+void AdaptiveSampling<dim, nstate>::initializeSampling(int n) const{
+
+    double dx = (parameter_space[1] - parameter_space[0])/(n - 1);
+
+    //Add initial conditions to basis
+    double parameter = parameter_space[0];
+    Parameters::AllParameters params = reinitParams(parameter);
+    std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
+    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
+    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
+    current_pod->addSnapshot(initial_conditions);
+
+    for(int i = 0 ; i < n ; i++){
+        parameter = i*dx + parameter_space[0];
+        std::cout << "Sampling initial snapshot at " << parameter << std::endl;
+        sampled_locations.push_back(parameter);
+        std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(parameter);
+        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
+        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        //rom_locations.push_back(*fom_solution);
     }
 
     current_pod->computeBasis();
 
-    for(int idx = 0 ; idx < initialSnapshots ; idx++){
-        std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = solveSnapshotROM(sampled_locations[idx]);
-        snapshots[idx].add_ROM(rom_solution);
+    for(int i = 0 ; i < n-1 ; i++) {
+        parameter = i * dx + dx / 2 + parameter_space[0];
+        std::cout << "Computing ROM at " << parameter << std::endl;
+        ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(parameter);
+        //ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(parameter, rom_solution);
+        rom_locations.push_back(rom_solution);
     }
 
 }
@@ -252,7 +224,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> Adaptive
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(double parameter) const{
+ProperOrthogonalDecomposition::ROMSolution<dim,nstate> AdaptiveSampling<dim, nstate>::solveSnapshotROM(double parameter) const{
     std::cout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -271,7 +243,13 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     // Create functional
     auto functional = BurgersRewienskiFunctional2<dim,nstate,double>(flow_solver->dg,dg_state->pde_physics_fad_fad,true,false);
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, functional, current_pod);
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    system_matrix_transpose->copy_from(flow_solver->dg->system_matrix_transpose);
+
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    pod_basis->copy_from(*current_pod->getPODBasis());
+
+    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> rom_solution = ProperOrthogonalDecomposition::ROMSolution<dim, nstate>(flow_solver->dg, system_matrix_transpose,functional, pod_basis);
     std::cout << "Done solving ROM." << std::endl;
     return rom_solution;
 }

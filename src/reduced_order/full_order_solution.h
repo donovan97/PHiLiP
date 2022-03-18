@@ -26,7 +26,7 @@ public:
     FOMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, double sensitivity);
 
     /// Destructor
-    virtual ~FOMSolution () {};
+    ~FOMSolution () {};
 
     const dealii::LinearAlgebra::distributed::Vector<double> state;
 

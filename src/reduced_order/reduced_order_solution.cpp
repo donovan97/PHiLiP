@@ -4,14 +4,20 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-ROMSolution<dim, nstate>::ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_input)
-        : system_matrix_transpose(dealii::TrilinosWrappers::SparseMatrix())
+ROMSolution<dim, nstate>::ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis)
+        : system_matrix_transpose(system_matrix_transpose)
         , right_hand_side(dg_input->right_hand_side)
-        , basis(pod_input->getPODBasis().get())
+        , basis(pod_basis)
         , functional_value(functional_input.evaluate_functional( true, false, false))
         , gradient(functional_input.dIdw)
 {
-    system_matrix_transpose.copy_from(dg_input->system_matrix_transpose);
+    //system_matrix_transpose.copy_from(dg_input->system_matrix_transpose);
+    std::cout << "Original constructor: " << &system_matrix_transpose << std::endl;
+    std::cout << "Original constructor: " << &functional_value << std::endl;
+    std::cout << "Original constructor: " << &right_hand_side<< std::endl;
+    std::cout << "Original constructor: " << &gradient<< std::endl;
+    std::cout << "Original constructor: " << &basis<< std::endl;
+
 }
 
 template class ROMSolution <PHILIP_DIM, 1>;

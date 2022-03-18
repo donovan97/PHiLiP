@@ -17,10 +17,11 @@
 #include "reduced_order/full_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include "testing/flow_solver.h"
-#include "reduced_order/snapshot.h"
+#include "reduced_order/rom_test_location.h"
 #include <deal.II/lac/householder.h>
 #include <cmath>
 #include <iostream>
+#include <deal.II/base/function_lib.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -36,50 +37,40 @@ public:
     AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input);
 
     /// Destructor
-    virtual ~AdaptiveSampling() {};
+    ~AdaptiveSampling() {};
 
-    std::vector<double> parameter_space_error;
-
-    std::vector<double> parameter_space_snapshots;
-
-    double tolerance;
+    std::vector<double> parameter_space;
 
     std::shared_ptr<dealii::TableHandler> data_table;
 
-    mutable std::vector<double> sampled_locations;
-
-    mutable std::vector<double> unsampled_locations;
-
-    mutable std::vector<ProperOrthogonalDecomposition::Snapshot<dim,nstate>> snapshots;
-
-    double num_trial_locations;
+    mutable std::list<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_locations;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
     /// Run test
     int run_test () const override;
 
-    void generateTrialLocations(int n) const;
 
-    void initializeSampling() const;
+
+    void initializeSampling(int n) const;
 
     void updatePODBasis() const;
 
     void updateErrors() const;
 
+    mutable std::vector<double> sampled_locations;
+
     dealii::Vector<double> polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const;
 
     dealii::Vector<double> polyVal(dealii::Vector<double> polynomial, dealii::Vector<double> x) const;
 
-    int updateSensitivityCurveFit() const;
-
-    double updateErrorCurveFit() const;
+    double getMaxErrorROM() const;
 
     void addSnapshot() const;
 
     std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(double parameter) const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(double parameter) const;
+    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> solveSnapshotROM(double parameter) const;
 
     Parameters::AllParameters reinitParams(double parameter) const;
 

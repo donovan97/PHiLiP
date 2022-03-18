@@ -1,5 +1,5 @@
-#ifndef __SNAPSHOT__
-#define __SNAPSHOT__
+#ifndef __ROM_TEST_LOCATION__
+#define __ROM_TEST_LOCATION__
 
 #include <fstream>
 #include <iostream>
@@ -22,35 +22,30 @@ namespace ProperOrthogonalDecomposition {
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>
-class Snapshot
+class ROMTestLocation
 {
 public:
     /// Constructor
-    Snapshot(double parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution);
+    ROMTestLocation(double parameter, std::shared_ptr<ROMSolution < dim, nstate>> rom_solution);
 
-    /// Constructor
-    Snapshot(double parameter, std::shared_ptr<FOMSolution<dim, nstate>> fom_solution);
+    /// Copy Constructor
+    ROMTestLocation(const ROMTestLocation& rom_test_location) = default;
+
+    ///Assignment operator
+    ROMTestLocation& operator= (const ROMTestLocation& rom_test_location) = default;
 
     /// Destructor
-    virtual ~Snapshot() {};
-
-    void add_FOM(std::shared_ptr<FOMSolution<dim, nstate>> fom_solution);
-
-    void add_ROM(std::shared_ptr<ROMSolution<dim, nstate>> rom_solution);
+    ~ROMTestLocation() {};
 
     void compute_FOM_to_initial_ROM_error();
 
     void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated);
-
-    void compute_FOM_to_initial_ROM_error_estimate();
 
     void compute_total_error();
 
     double parameter;
 
     std::shared_ptr<ROMSolution<dim, nstate>> rom_solution;
-
-    std::shared_ptr<FOMSolution<dim, nstate>> fom_solution;
 
     double fom_to_initial_rom_error;
 

@@ -20,7 +20,7 @@
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "reduced_order/pod_full_dim_adaptation.h"
 #include "flow_solver.h"
-#include "reduced_order/adaptive_sampling.h"
+
 
 namespace PHiLiP {
 namespace Tests {

@@ -23,12 +23,12 @@ class ROMSolution
 {
 public:
     /// Constructor
-    ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, Functional<dim,nstate,double> &functional_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>>);
+    ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis);
 
     /// Destructor
-    virtual ~ROMSolution () {};
+    ~ROMSolution () {};
 
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
 
     const dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
