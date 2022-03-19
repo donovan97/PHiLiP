@@ -41,24 +41,16 @@ public:
 
     std::vector<double> parameter_space;
 
-    std::shared_ptr<dealii::TableHandler> data_table;
+    mutable std::unordered_map<double,ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_locations;
 
-    mutable std::list<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_locations;
+    mutable std::vector<double> sampled_locations;
 
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
 
     /// Run test
     int run_test () const override;
 
-
-
     void initializeSampling(int n) const;
-
-    void updatePODBasis() const;
-
-    void updateErrors() const;
-
-    mutable std::vector<double> sampled_locations;
 
     dealii::Vector<double> polyFit(dealii::Vector<double> x, dealii::Vector<double> y, unsigned int n) const;
 
@@ -66,11 +58,9 @@ public:
 
     double getMaxErrorROM() const;
 
-    void addSnapshot() const;
-
     std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(double parameter) const;
 
-    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> solveSnapshotROM(double parameter) const;
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(double parameter) const;
 
     Parameters::AllParameters reinitParams(double parameter) const;
 

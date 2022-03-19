@@ -11,13 +11,6 @@ ROMSolution<dim, nstate>::ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_in
         , functional_value(functional_input.evaluate_functional( true, false, false))
         , gradient(functional_input.dIdw)
 {
-    //system_matrix_transpose.copy_from(dg_input->system_matrix_transpose);
-    std::cout << "Original constructor: " << &system_matrix_transpose << std::endl;
-    std::cout << "Original constructor: " << &functional_value << std::endl;
-    std::cout << "Original constructor: " << &right_hand_side<< std::endl;
-    std::cout << "Original constructor: " << &gradient<< std::endl;
-    std::cout << "Original constructor: " << &basis<< std::endl;
-
 }
 
 template class ROMSolution <PHILIP_DIM, 1>;

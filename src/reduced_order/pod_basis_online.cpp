@@ -38,7 +38,6 @@ void OnlinePOD<dim>::computeBasis() {
     dealii::LAPACKFullMatrix<double> massWeightedSolutionSnapshots(snapshot_matrix.n(), snapshot_matrix.n());
     snapshot_matrix.Tmmult(tmp, massMatrix);
     tmp.mmult(massWeightedSolutionSnapshots, snapshot_matrix);
-    std::cout << "HERE1" << std::endl;
     // Compute SVD of mass weighted solution snapshots: massWeightedSolutionSnapshots = U * Sigma * V^T
     massWeightedSolutionSnapshots.compute_svd();
 
@@ -47,29 +46,26 @@ void OnlinePOD<dim>::computeBasis() {
     dealii::LAPACKFullMatrix<double> eigenvectors_T = massWeightedSolutionSnapshots.get_svd_vt();
     dealii::LAPACKFullMatrix<double> eigenvectors(massWeightedSolutionSnapshots.get_svd_vt().n(), massWeightedSolutionSnapshots.get_svd_vt().m());
     eigenvectors_T.transpose(eigenvectors);
-    std::cout << "HERE2" << std::endl;
+
     //Form diagonal matrix of inverse singular values
     dealii::LAPACKFullMatrix<double> eigenvaluesSqrtInverse(snapshot_matrix.n(), snapshot_matrix.n());
     for (unsigned int idx = 0; idx < snapshot_matrix.n(); idx++) {
         eigenvaluesSqrtInverse(idx, idx) = 1 / std::sqrt(massWeightedSolutionSnapshots.singular_value(idx));
     }
-    std::cout << "HERE3" << std::endl;
 
     //Compute POD basis: fullBasis = solutionSnapshots * eigenvectors * simgularValuesInverse
     tmp.reinit(snapshot_matrix.n(), snapshot_matrix.n());
     eigenvectors.mmult(tmp, eigenvaluesSqrtInverse);
-    std::cout << "HERE4" << std::endl;
 
     dealii::LAPACKFullMatrix<double> fullBasis(snapshot_matrix.m(), snapshot_matrix.n());
     snapshot_matrix.mmult(fullBasis, tmp);
-    std::cout << "HERE5" << std::endl;
 
     std::ofstream out_file("POD_adaptation_basis.txt");
     unsigned int precision = 7;
     fullBasis.print_formatted(out_file, precision);
 
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(snapshotVectors[0].size(), snapshotVectors.size(), snapshotVectors.size());
-    std::cout << snapshotVectors[0].size() << " " << snapshotVectors.size() << std::endl;
+
     for(unsigned int m = 0 ; m < snapshotVectors[0].size() ; m++){
         for(unsigned int n = 0 ; n < snapshotVectors.size() ; n++){
             basis_tmp.set(m, n, fullBasis(m,n));
@@ -94,7 +90,7 @@ void OnlinePOD<dim>::computeBasis() {
 
     basis->reinit(basis_tmp);
     basis->copy_from(basis_tmp);
-    std::cout << "Done computing POD basis..." << std::endl;
+    std::cout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
 }
 
 template <int dim>

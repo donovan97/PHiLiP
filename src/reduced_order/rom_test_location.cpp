@@ -34,13 +34,13 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
-    std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Adjoint" << std::setw(20) << std::left << "Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
+    //std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Adjoint" << std::setw(20) << std::left << "Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
     for(unsigned int i = 0; i < adjoint.size(); i++){
         dualWeightedResidual[i] = -(adjoint[i] * rom_solution->right_hand_side[i]);
         fom_to_initial_rom_error = fom_to_initial_rom_error + dualWeightedResidual[i];
         //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << adjoint[i] << std::setw(20) << std::left << rom_solution->right_hand_side[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
-    std::cout << "Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
+    std::cout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
@@ -73,20 +73,20 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
-    std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
+    //std::cout << std::setw(10) << std::left << "Index" << std::setw(20) << std::left << "Reduced Adjoint" << std::setw(20) << std::left << "Reduced Residual" << std::setw(20) << std::left << "Dual Weighted Residual" << std::endl;
     for(unsigned int i = 0; i < fineAdjoint.size(); i++){
         dualWeightedResidual[i] = -(fineAdjoint[i] * fineResidual[i]);
         initial_rom_to_final_rom_error = initial_rom_to_final_rom_error + dualWeightedResidual[i];
         //std::cout << std::setw(10) << std::left << i << std::setw(20) << std::left << fineAdjoint[i] << std::setw(20) << std::left << fineResidual[i] << std::setw(20) << std::left << dualWeightedResidual[i] << std::endl;
     }
-    std::cout << "Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
+    std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_total_error(){
     std::cout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
-    std::cout << "Total error estimate between FOM and updated ROM: " << total_error << std::endl;
+    std::cout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
 
