@@ -56,10 +56,19 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     pod_updated->getPODBasis()->Tvmult(fineGradient, rom_solution->gradient);
 
-    dealii::TrilinosWrappers::SparseMatrix tmp;
+    //*******************Compute fine jacobian transpose (Petrov-Galerkin)********************
+    dealii::TrilinosWrappers::SparseMatrix petrov_galerkin_basis;
     dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
-    pod_updated->getPODBasis()->Tmmult(tmp, *rom_solution->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
-    tmp.mmult(fineJacobianTranspose, *pod_updated->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
+    rom_solution->system_matrix_transpose->Tmmult(petrov_galerkin_basis, *pod_updated->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
+    petrov_galerkin_basis.Tmmult(fineJacobianTranspose, petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
+    //*****************************************************************************************
+
+    //************************Compute fine jacobian transpose (Galerkin)**********************
+    //dealii::TrilinosWrappers::SparseMatrix tmp;
+    //dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
+    //pod_updated->getPODBasis()->Tmmult(tmp, *rom_solution->system_matrix_transpose); //tmp = pod_basis^T * dg->system_matrix_transpose
+    //tmp.mmult(fineJacobianTranspose, *pod_updated->getPODBasis()); // reducedJacobianTranspose= tmp*pod_basis
+    //****************************************************************************************
 
     dealii::ParameterHandler parameter_handler;
     Parameters::LinearSolverParam linear_solver_param;
@@ -68,8 +77,13 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
     solve_linear(fineJacobianTranspose, fineGradient*=-1.0, fineAdjoint, linear_solver_param);
 
-    //Compute fine residual
-    pod_updated->getPODBasis()->Tvmult(fineResidual, rom_solution->right_hand_side);
+    //******************Compute fine residual (Galerkin)********************************
+    //pod_updated->getPODBasis()->Tvmult(fineResidual, rom_solution->right_hand_side);
+    //**********************************************************************************
+
+    //*****************Compute fine residual (Petrov_Galerkin)*************************
+    petrov_galerkin_basis.Tvmult(fineResidual, rom_solution->right_hand_side);
+    //*********************************************************************************
 
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;

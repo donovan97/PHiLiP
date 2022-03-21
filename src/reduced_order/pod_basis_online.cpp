@@ -31,6 +31,10 @@ void OnlinePOD<dim>::computeBasis() {
         }
     }
 
+    std::ofstream out_file_snap("snapshot_matrix.txt");
+    unsigned int precision1 = 16;
+    snapshot_matrix.print_formatted(out_file_snap, precision1);
+
     std::cout << "Computing POD basis using the method of snapshots..." << std::endl;
 
     // Get mass weighted solution snapshots: massWeightedSolutionSnapshots = solutionSnapshots^T * massMatrix * solutionSnapshots
@@ -61,7 +65,7 @@ void OnlinePOD<dim>::computeBasis() {
     snapshot_matrix.mmult(fullBasis, tmp);
 
     std::ofstream out_file("POD_adaptation_basis.txt");
-    unsigned int precision = 7;
+    unsigned int precision = 16;
     fullBasis.print_formatted(out_file, precision);
 
     dealii::TrilinosWrappers::SparseMatrix basis_tmp(snapshotVectors[0].size(), snapshotVectors.size(), snapshotVectors.size());

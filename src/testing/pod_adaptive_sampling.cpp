@@ -24,7 +24,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     initializeSampling(n);
 
     double max_error = 1;
-    double tolerance = 1E-09;
+    double tolerance = 1E-03;
     double max_parameter = getMaxErrorROM();
 
     double parameter = parameter_space[0];
@@ -87,23 +87,28 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         std::cout << "Max error is: " << max_error << std::endl;
     }
 
-    std::shared_ptr<dealii::TableHandler> data_table = std::make_shared<dealii::TableHandler>();
+    std::shared_ptr<dealii::TableHandler> snapshot_table = std::make_shared<dealii::TableHandler>();
 
     for(auto& location : sampled_locations){
-        data_table->add_value("Snapshots", location);
-        data_table->set_precision("Snapshots", 16);
+        snapshot_table->add_value("Snapshots", location);
+        snapshot_table->set_precision("Snapshots", 16);
     }
+
+    std::ofstream snapshot_table_file("adaptive_sampling_snapshot_table.txt");
+    snapshot_table->write_text(snapshot_table_file);
+
+    std::shared_ptr<dealii::TableHandler> rom_table = std::make_shared<dealii::TableHandler>();
 
     for(auto& [key, value] : rom_locations){
-        data_table->add_value("ROM params", value.parameter);
-        data_table->set_precision("ROM params", 16);
+        rom_table->add_value("ROM params", value.parameter);
+        rom_table->set_precision("ROM params", 16);
 
-        data_table->add_value("ROM errors", value.total_error);
-        data_table->set_precision("ROM errors", 16);
+        rom_table->add_value("ROM errors", value.total_error);
+        rom_table->set_precision("ROM errors", 16);
     }
 
-    std::ofstream data_table_file("adaptive_sampling_data_table.txt");
-    data_table->write_text(data_table_file);
+    std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
+    rom_table->write_text(rom_table_file);
 
     return 0;
 }
@@ -131,13 +136,13 @@ void AdaptiveSampling<dim, nstate>::initializeSampling(int n) const{
 
     double dx = (parameter_space[1] - parameter_space[0])/(n - 1);
 
-    //Add initial conditions to basis
+    //Get initial conditions
     double parameter = parameter_space[0];
     Parameters::AllParameters params = reinitParams(parameter);
     std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(&params);
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
     const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-    current_pod->addSnapshot(initial_conditions);
+    //current_pod->addSnapshot(initial_conditions);
 
     for(int i = 0 ; i < n ; i++){
         parameter = i*dx + parameter_space[0];
@@ -231,7 +236,7 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = std::make_unique<Tests::FlowSolver<dim,nstate>>(&params, flow_solver_case);
 
     // Solve implicit solution
-    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();

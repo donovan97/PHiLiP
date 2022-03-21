@@ -49,7 +49,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
             *this->reduced_solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
+    //pod->getPODBasis()->vmult(this->solution_update, *this->reduced_solution_update);
 
     linesearch();
     //double step_length = 1.0;
@@ -63,6 +63,38 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 template <int dim, typename real, typename MeshType>
 double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 {
+    const auto old_reduced_solution = reduced_solution;
+    double step_length = 1.0;
+
+    const double step_reduction = 0.5;
+    const int maxline = 10;
+    const double reduction_tolerance_1 = 1.0;
+
+    const double initial_residual = this->dg->get_residual_l2norm();
+
+    reduced_solution = old_reduced_solution;
+    reduced_solution.add(step_length, *this->reduced_solution_update);
+    pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
+    this->dg->solution.add(1, reference_solution);
+
+    this->dg->assemble_residual ();
+    double new_residual = this->dg->get_residual_l2norm();
+    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+
+    int iline = 0;
+    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
+        step_length = step_length * step_reduction;
+        reduced_solution = old_reduced_solution;
+        reduced_solution.add(step_length, *this->reduced_solution_update);
+        pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
+        this->dg->solution.add(1, reference_solution);
+        this->dg->assemble_residual();
+        new_residual = this->dg->get_residual_l2norm();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    }
+    if (iline == 0) this->CFL_factor *= 2.0;
+
+    /*
     const auto old_solution = this->dg->solution;
     double step_length = 1.0;
 
@@ -72,7 +104,8 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 
     const double initial_residual = this->dg->get_residual_l2norm();
 
-    this->dg->solution.add(step_length, this->solution_update);
+    //this->dg->solution.add(step_length, this->solution_update);
+
     this->dg->assemble_residual ();
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
@@ -87,7 +120,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
     if (iline == 0) this->CFL_factor *= 2.0;
-
+    */
     return step_length;
 }
 
@@ -104,6 +137,8 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
     petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
     reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
+    reference_solution = this->dg->solution; //Set reference solution to initial conditions
+    reduced_solution = dealii::LinearAlgebra::distributed::Vector<double>(pod->getPODBasis()->n()); //Zero if reference solution is the initial conditions
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

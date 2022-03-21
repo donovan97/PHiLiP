@@ -40,6 +40,12 @@ public:
     /// Reduced rhs for linear solver
     std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
+    /// Reference solution for consistency
+    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
+
+    /// Reduced solution
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
+
     /// Psi = J * V
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> petrov_galerkin_basis;
 

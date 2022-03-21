@@ -24,6 +24,7 @@ StatePOD<dim>::StatePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         }
         saveFullPODBasisToFile();
     }
+    saveFullPODBasisToFile();
     buildPODBasis();
 }
 
