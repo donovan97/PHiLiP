@@ -54,7 +54,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver_standard->dg->solution);
     dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
     double standard_error = ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
-    double standard_func_error = functional_implicit.evaluate_functional(false,false) - functional_standard.evaluate_functional(false,false);
+    double standard_func_error = functional_standard.evaluate_functional(false,false) - functional_implicit.evaluate_functional(false,false);
     pcout << "Standard error: " << standard_error << std::endl;
     pcout << "Standard func error: " << std::setprecision(15)  << standard_func_error << std::setprecision(6) << std::endl;
 

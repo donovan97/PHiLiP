@@ -7,7 +7,7 @@ template<int dim, int nstate>
 AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
     {
-        std::vector<double> parameter_range = {0.01, 0.1};
+        std::vector<double> parameter_range = {0.01+0.000001, 0.1+0.000001};
         parameter_space = parameter_range;
 
         std::shared_ptr<Tests::BurgersRewienskiSnapshot<dim, nstate>> flow_solver_case = std::make_shared<Tests::BurgersRewienskiSnapshot<dim,nstate>>(all_parameters);
@@ -105,6 +105,9 @@ int AdaptiveSampling<dim, nstate>::run_test() const
 
         rom_table->add_value("ROM errors", value.total_error);
         rom_table->set_precision("ROM errors", 16);
+
+        rom_table->add_value("Error sensitivity", value.total_sensitivity);
+        rom_table->set_precision("Error sensitivity", 16);
     }
 
     std::ofstream rom_table_file("adaptive_sampling_rom_table.txt");
@@ -253,7 +256,33 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     pod_basis->copy_from(*current_pod->getPODBasis());
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose,functional, pod_basis);
+    //Compute gradient dR/db
+    this->pcout << "Computing sensitivity to parameter" << std::endl;
+    int overintegrate = 0;
+    dealii::QGauss<dim> quad_extra(flow_solver->dg->max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(flow_solver->dg->high_order_grid->mapping_fe_field), flow_solver->dg->fe_collection[flow_solver->dg->max_degree], quad_extra,
+                                              dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
+    dealii::LinearAlgebra::distributed::Vector<double> sensitivity_dRdb(flow_solver->dg->n_dofs());
+    sensitivity_dRdb*=0;
+    for (auto cell : flow_solver->dg->dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+
+        fe_values_extra.reinit(cell);
+        cell->get_dof_indices(dofs_indices);
+
+        for (unsigned int idof = 0; idof < fe_values_extra.dofs_per_cell; ++idof) {
+            for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                double b = params.burgers_param.rewienski_b;
+                const dealii::Point<dim, double> point = fe_values_extra.quadrature_point(iquad);
+                sensitivity_dRdb[dofs_indices[idof]] += fe_values_extra.shape_value_component(idof, iquad, istate) * 0.02 * point[0] * exp(point[0] * b) * fe_values_extra.JxW(iquad);
+            }
+        }
+    }
+
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose,functional, pod_basis, sensitivity_dRdb);
     std::cout << "Done solving ROM." << std::endl;
     return rom_solution;
 }

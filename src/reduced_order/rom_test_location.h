@@ -53,6 +53,12 @@ public:
 
     double total_error;
 
+    double fom_to_initial_rom_sensitivity;
+
+    double initial_rom_to_final_rom_sensitivity;
+
+    double total_sensitivity;
+
 };
 
 }
