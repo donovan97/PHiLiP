@@ -1,5 +1,7 @@
 #include <fstream>
-
+#include <pybind11/embed.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>
@@ -33,6 +35,45 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
+    namespace py = pybind11;
+
+    py::scoped_interpreter guard{}; // start the interpreter and keep it alive
+    py::print("Hello, World!"); // use the Python API
+
+    py::module np = py::module::import("numpy");
+    py::module scipy = py::module::import("scipy");
+
+    std::vector<double> xValues(11, 0);
+    std::vector<double> yValues(11, 0);
+    for (int i = -5; i < 6; ++i) {
+        xValues[i + 5] = i;
+        yValues[i + 5] = i*i;
+    }
+
+    // Cast data to numpy arrays
+    py::array_t<double> pyXValues = py::cast(xValues);
+    py::array_t<double> pyYValues = py::cast(yValues);
+
+    // Load scipy.optimize.curve_fit
+    py::function add = np.attr("add");
+
+    // Call curve_fit
+    py::object retVals = add(pyXValues, pyYValues);
+
+    auto sumStd = retVals.cast<std::vector<double>>();
+
+    for(unsigned int i = 0 ; i < sumStd.size(); i++){
+        std::cout << "x" << xValues[i] << std::endl;
+        std::cout << "y" << yValues[i] << std::endl;
+        std::cout << "sum" << sumStd[i] << std::endl;
+    }
+
+    std::cout << "end" << std::endl;
+    return 0;
+
+
+
+    /*
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver_implicit->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_implicit->dg);
@@ -66,6 +107,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     myfile.close();
 
     return 0;
+     */
     /*
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
 

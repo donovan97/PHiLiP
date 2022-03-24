@@ -143,7 +143,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::POD_adaptation) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<AdaptiveSampling<dim,nstate>>(parameters_input);
+        if constexpr (dim==1 && nstate==1) return std::make_unique<ReducedOrderPODAdaptation<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::finite_difference_sensitivity) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<FiniteDifferenceSensitivity<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca0012) {
