@@ -27,10 +27,7 @@ set(TESTS_SOURCE
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver.cpp
-    dual_weighted_residual_mesh_adaptation.cpp pod_adaptive_sampling.cpp pod_adaptive_sampling.h MyFunctionality.py)
-
-find_package(pybind11 REQUIRED)
-find_package(Python COMPONENTS Interpreter Development REQUIRED)
+    dual_weighted_residual_mesh_adaptation.cpp pod_adaptive_sampling.cpp pod_adaptive_sampling.h)
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -62,7 +59,6 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${OptimizationLib})
     target_link_libraries(${TestsLib} ${PODLib})
     target_link_libraries(${TestsLib} ${InitialConditionsLib})
-    target_link_libraries(${TestsLib} pybind11::embed)
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})

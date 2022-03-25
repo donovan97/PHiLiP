@@ -1,7 +1,4 @@
 #include <fstream>
-#include <pybind11/embed.h>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/solution_transfer.h>
 #include <deal.II/base/numbers.h>
@@ -21,7 +18,9 @@
 #include "reduced_order/pod_basis_sensitivity.h"
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "reduced_order/pod_full_dim_adaptation.h"
+#include "reduced_order/rbf_interpolation.h"
 #include "flow_solver.h"
+#include "Eigen/Dense"
 
 
 namespace PHiLiP {
@@ -35,43 +34,61 @@ ReducedOrderPODAdaptation<dim, nstate>::ReducedOrderPODAdaptation(const PHiLiP::
 template <int dim, int nstate>
 int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
 {
-    namespace py = pybind11;
+    using Eigen::MatrixXd;
+    using Eigen::VectorXd;
+    using Eigen::RowVectorXd;
 
-    py::scoped_interpreter guard{}; // start the interpreter and keep it alive
-    py::print("Hello, World!"); // use the Python API
 
-    py::module np = py::module::import("numpy");
-    py::module scipy = py::module::import("scipy");
+    MatrixXd m(15,1);
+    m(0,0) = 0.015625;
+    m(1,0) = 0.026875;
+    m(2,0) = 0.043750;
+    m(3,0) = 0.06625;
+    m(4,0) = 0.083125;
+    m(5,0) = 0.0915625;
+    m(6,0) = 0.0971875;
+    m(7,0) = 0.01;
+    m(8,0) = 0.0325;
+    m(9,0) = 0.055;
+    m(10,0) = 0.0775;
+    m(11,0) = 0.1;
+    m(12,0) = 0.08875;
+    m(13,0) = 0.02125;
+    m(14,0) = 0.094375;
+    std::cout << m << std::endl;
 
-    std::vector<double> xValues(11, 0);
-    std::vector<double> yValues(11, 0);
-    for (int i = -5; i < 6; ++i) {
-        xValues[i + 5] = i;
-        yValues[i + 5] = i*i;
-    }
+    VectorXd v(15,1);
+    v(0,0) = 0.0000108486836476;
+    v(1,0) = -0.0000163453399626;
+    v(2,0) = 0.0001130944474668;
+    v(3,0) = -0.0001484536780392;
+    v(4,0) = 0.0000305148466546;
+    v(5,0) = -0.0000098224663437;
+    v(6,0) = 0.0000211363203154;
+    v(7,0) = 0;
+    v(8,0) = 0;
+    v(9,0) = 0;
+    v(10,0) = 0;
+    v(11,0) = 0;
+    v(12,0) = 0;
+    v(13,0) = 0;
+    v(14,0) = 0;
 
-    // Cast data to numpy arrays
-    py::array_t<double> pyXValues = py::cast(xValues);
-    py::array_t<double> pyYValues = py::cast(yValues);
+    std::cout << v << std::endl;
 
-    // Load scipy.optimize.curve_fit
-    py::function add = np.attr("add");
+    std::string kernel = "thin_plate_spline";
 
-    // Call curve_fit
-    py::object retVals = add(pyXValues, pyYValues);
+    ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(m, v, kernel);
 
-    auto sumStd = retVals.cast<std::vector<double>>();
+    RowVectorXd v2(1,1);
+    v2(0,0) = 0.05182;
 
-    for(unsigned int i = 0 ; i < sumStd.size(); i++){
-        std::cout << "x" << xValues[i] << std::endl;
-        std::cout << "y" << yValues[i] << std::endl;
-        std::cout << "sum" << sumStd[i] << std::endl;
-    }
 
-    std::cout << "end" << std::endl;
+    VectorXd result = rbf.evaluate(v2);
+
+    std::cout << result << std::endl;
+
     return 0;
-
-
 
     /*
     std::unique_ptr<FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolverFactory<dim,nstate>::create_FlowSolver(all_parameters);
