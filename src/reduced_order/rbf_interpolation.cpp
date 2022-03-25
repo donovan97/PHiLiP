@@ -58,10 +58,25 @@ VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
         s(0,i) = radialBasisFunction(point);
     }
 
-    //std::cout << s << std::endl;
-    std::cout << s*weights << std::endl;
     return s*weights;
 }
+
+/******************For use as a Functor to use with Eigen's minimizer*****************************
+ *************************************************************************************************/
+
+int RBFInterpolation::operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
+{
+    // IMPORTANT: The Eigen Levenberg-Marquardt algorithm will square fvec internally. Therefore, for this rbf, taking the inverse
+    // of the absolute value will give the right minimum
+    RowVectorXd rbf_x = evaluate(x.transpose());
+    fvec = rbf_x.transpose().cwiseAbs().cwiseInverse();
+    return 0;
+}
+
+int RBFInterpolation::inputs() const { return 1; }// inputs is the dimension of x.
+
+int RBFInterpolation::values() const { return 1; } // "values" is the number of f_i and
+
 
 }
 }

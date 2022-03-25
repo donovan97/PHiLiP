@@ -19,7 +19,6 @@
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "reduced_order/pod_full_dim_adaptation.h"
 #include "reduced_order/rbf_interpolation.h"
-#include "reduced_order/levenberg_marquardt.h"
 #include "flow_solver.h"
 #include "Eigen/Dense"
 #include <unsupported/Eigen/NonLinearOptimization>
@@ -86,19 +85,16 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     RowVectorXd v2(1,1);
     v2(0,0) = 0.05182;
 
-
     VectorXd result = rbf.evaluate(v2);
 
     std::cout << result << std::endl;
-
 
     Eigen::VectorXd x(1);
     x(0) = 0.06;
     std::cout << "x: " << x << std::endl;
 
-    ProperOrthogonalDecomposition::MyFunctor myFunctor(rbf);
-    Eigen::NumericalDiff<ProperOrthogonalDecomposition::MyFunctor> numericalDiffMyFunctor(myFunctor);
-    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<ProperOrthogonalDecomposition::MyFunctor>, double> levenbergMarquardt(numericalDiffMyFunctor);
+    Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation> numericalDiffMyFunctor(rbf);
+    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<ProperOrthogonalDecomposition::RBFInterpolation>, double> levenbergMarquardt(numericalDiffMyFunctor);
 
     levenbergMarquardt.parameters.ftol = 1e-6;
     levenbergMarquardt.parameters.xtol = 1e-6;

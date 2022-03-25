@@ -35,6 +35,25 @@ public:
 
     const std::string kernel;
 
+    /******************For use as a Functor to use with Eigen's minimizer*****************************
+    *************************************************************************************************/
+    typedef double Scalar;
+
+    typedef Eigen::VectorXd InputType;
+    typedef Eigen::VectorXd ValueType;
+    typedef Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> JacobianType;
+
+    enum {
+        InputsAtCompileTime = Eigen::Dynamic,
+        ValuesAtCompileTime = Eigen::Dynamic
+    };
+
+    int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const;
+
+    int inputs() const;
+
+    int values() const;
+
 };
 
 }
