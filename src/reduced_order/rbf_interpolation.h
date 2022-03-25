@@ -23,9 +23,9 @@ public:
 
     void computeWeights();
 
-    double radialBasisFunction(double r);
+    double radialBasisFunction(double r) const;
 
-    VectorXd evaluate(RowVectorXd evaluate_coordinate);
+    VectorXd evaluate(RowVectorXd evaluate_coordinate) const;
 
     VectorXd weights;
 

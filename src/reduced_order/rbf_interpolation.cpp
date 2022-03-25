@@ -34,7 +34,7 @@ void RBFInterpolation::computeWeights() {
     std::cout << weights << std::endl;
 }
 
-double RBFInterpolation::radialBasisFunction(double r) {
+double RBFInterpolation::radialBasisFunction(double r) const{
     if(kernel == "thin_plate_spline"){
         if(r > 0){
             return std::pow(r, 2) * std::log(r);
@@ -48,7 +48,7 @@ double RBFInterpolation::radialBasisFunction(double r) {
     }
 }
 
-VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) {
+VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) const {
     long N = data_coordinates.rows();
 
     RowVectorXd s(1,N);
@@ -58,8 +58,8 @@ VectorXd RBFInterpolation::evaluate(RowVectorXd evaluate_coordinate) {
         s(0,i) = radialBasisFunction(point);
     }
 
-    std::cout << s << std::endl;
-
+    //std::cout << s << std::endl;
+    std::cout << s*weights << std::endl;
     return s*weights;
 }
 
