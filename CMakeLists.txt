@@ -42,7 +42,7 @@ if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
 
-include_directories($ENV{HOME}/Libraries/eigen-3.4.0)
+include_directories(${PROJECT_SOURCE_DIR}/submodules/eigen-3.4.0)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)

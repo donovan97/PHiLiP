@@ -4,8 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/LU>
 #include <iostream>
-#include <algorithm>
-#include <unistd.h>
+
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 using Eigen::MatrixXd;
