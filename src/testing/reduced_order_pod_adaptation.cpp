@@ -19,6 +19,7 @@
 #include "reduced_order/pod_basis_sensitivity_types.h"
 #include "reduced_order/pod_full_dim_adaptation.h"
 #include "reduced_order/rbf_interpolation.h"
+#include "reduced_order/delaunay.h"
 #include "flow_solver.h"
 #include "Eigen/Dense"
 #include <unsupported/Eigen/NonLinearOptimization>
@@ -39,8 +40,30 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     using Eigen::VectorXd;
     using Eigen::RowVectorXd;
 
+    Eigen::Matrix<double, Eigen::Dynamic, 2> m(6,2);
+    m << 0, 0,
+         0.5, 0.33,
+         0.25, 0.67,
+         0, 1,
+         1, 0,
+         1, 1;
+
+    ProperOrthogonalDecomposition::Delaunay D(m);
+
+    for(auto &triangle : D.triangulation){
+        std::cout << "Triangle" << std::endl;
+        for(auto& node : triangle.nodes){
+            std::cout << node(0) << " " << node(1) << std::endl;
+        }
+    }
+
+    for(auto centroid : D.centroids.rowwise()){
+        std::cout << centroid << std::endl;
+    }
 
 
+
+    /*
     MatrixXd m(15,1);
     m(0,0) = 0.015625;
     m(1,0) = 0.026875;
@@ -104,7 +127,7 @@ int ReducedOrderPODAdaptation<dim, nstate>::run_test() const
     levenbergMarquardt.minimize(xmin);
 
     std::cout << "x that minimizes the function: " << xmin << std::endl;
-
+    */
     return 0;
 
     /*

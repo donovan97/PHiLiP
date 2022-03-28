@@ -5,7 +5,7 @@
 #include <Eigen/LU>
 #include <iostream>
 #include <algorithm>
-
+#include <unistd.h>
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 using Eigen::MatrixXd;
@@ -37,20 +37,12 @@ public:
     ~Triangle() {};
 
     RowVector2d circumcenter;
-    RowVector2d node1;
-    RowVector2d node2;
-    RowVector2d node3;
-    Edge edge1;
-    Edge edge2;
-    Edge edge3;
     double radius_squared;
     std::vector<Edge> edges;
     std::vector<RowVector2d> nodes;
-
-    bool operator==(const Triangle& other);
 };
 
-/// Delaunay triangulation
+/// Delaunay triangulation, modified from https://github.com/jbegaint/delaunay-cpp
 class Delaunay
 {
 public:
@@ -62,7 +54,11 @@ public:
 
     void triangulate(Eigen::Matrix<double, Eigen::Dynamic, 2> points);
 
+    void compute_centroids();
+
     std::vector<Triangle> triangulation;
+
+    Eigen::Matrix<double, Eigen::Dynamic, 2> centroids;
 
 };
 
