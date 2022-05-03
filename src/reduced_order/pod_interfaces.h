@@ -3,6 +3,7 @@
 
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <Eigen/Dense>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -17,6 +18,8 @@ public:
 
     /// Function to return basis
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
+
+    virtual Eigen::MatrixXd getEigenPODBasis() {return Eigen::MatrixXd(0,0);};
 };
 
 /// Interface for coarse basis

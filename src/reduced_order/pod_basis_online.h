@@ -16,9 +16,13 @@
 #include <Epetra_CrsGraph.h>
 #include <Epetra_CrsMatrix.h>
 #include "pod_interfaces.h"
+#include <Eigen/Dense>
+#include <Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 /// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
@@ -49,6 +53,12 @@ public:
     Epetra_CrsGraph mass_matrix_sparsity;
 
     std::shared_ptr<DGBase<dim,double>> dg;
+
+    MatrixXd snapshotMatrix;
+
+    MatrixXd pod_basis;
+
+    MatrixXd getEigenPODBasis() override;
 
 };
 

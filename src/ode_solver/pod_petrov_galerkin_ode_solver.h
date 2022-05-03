@@ -6,6 +6,8 @@
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_interfaces.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <Eigen/Dense>
+#include <Eigen/SparseCore>
 
 namespace PHiLiP {
 namespace ODE {
