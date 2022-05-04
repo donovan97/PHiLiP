@@ -8,22 +8,15 @@ namespace ProperOrthogonalDecomposition {
 template<int dim>
 OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
-        , mass_matrix_sparsity(dg_input->global_mass_matrix.trilinos_sparsity_pattern())
         , dg(dg_input)
         , snapshotMatrix(0,0)
-{
-    const bool compute_dRdW = true;
-    dg_input->assemble_residual(compute_dRdW);
-    massMatrix.reinit(dg_input->global_mass_matrix.m(), dg_input->global_mass_matrix.n());
-    massMatrix.copy_from(dg_input->global_mass_matrix);
-}
+{}
 
 template <int dim>
 void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
     std::cout << "Adding new snapshot to snapshot matrix..." << std::endl;
     dealii::LinearAlgebra::ReadWriteVector<double> read_snapshot(snapshot.size());
     read_snapshot.import(snapshot, dealii::VectorOperation::values::insert);
-    //snapshotVectors.push_back(read_snapshot);
     VectorXd eigen_snapshot(snapshot.size());
     for(unsigned int i = 0 ; i < snapshot.size() ; i++){
         eigen_snapshot(i) = read_snapshot(i);
@@ -35,6 +28,14 @@ void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<doub
 template <int dim>
 void OnlinePOD<dim>::computeBasis() {
     std::cout << "Computing POD basis..." << std::endl;
+
+    reference_state = snapshotMatrix.rowwise().mean();
+
+    //for(unsigned int i = 0 ; i < reference_state.size() ; i++){
+    //    reference_state(i) = 1;
+    //}
+
+    snapshotMatrix = snapshotMatrix.colwise() - reference_state;
 
     Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
     pod_basis = svd.matrixU();
@@ -70,6 +71,11 @@ std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OnlinePOD<dim>::getPODBa
 template <int dim>
 MatrixXd OnlinePOD<dim>::getEigenPODBasis() {
     return pod_basis;
+}
+
+template <int dim>
+VectorXd OnlinePOD<dim>::getReferenceState() {
+    return reference_state;
 }
 
 template class OnlinePOD <PHILIP_DIM>;

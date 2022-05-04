@@ -24,7 +24,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     std::ofstream out_file("POD_adaptation_basis_0.txt");
     unsigned int precision = 16;
     current_pod->fullBasis.print_formatted(out_file, precision);
-    //placeInitialROMs();
+    placeInitialROMs();
     //placeTriangulationROMs();
     ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
     placeTriangulationROMs(delaunay);
@@ -33,10 +33,6 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     double tolerance = 1E-03;
     int iteration = 0;
 
-    Parameters::AllParameters params = reinitParams(max_error_params);
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-
     while(max_error > tolerance){
 
         outputErrors(iteration);
@@ -44,10 +40,9 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         std::cout << "Sampling snapshot at " << max_error_params << std::endl;
 
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(max_error_params);
-        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, 2);
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
-        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        current_pod->addSnapshot(fom_solution->state);
         current_pod->computeBasis();
 
         std::ofstream basis_out("POD_adaptation_basis_" + std::to_string(iteration + 1) + ".txt");
@@ -257,16 +252,10 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
-    //Get initial conditions
-    Parameters::AllParameters params = reinitParams(snapshot_parameters.row(0));
-    std::unique_ptr<Tests::FlowSolver<dim,nstate>> flow_solver = FlowSolverFactory<dim,nstate>::create_FlowSolver(&params, parameter_handler);
-    const dealii::LinearAlgebra::distributed::Vector<double> initial_conditions = flow_solver->dg->solution;
-
     for(auto snap_param : snapshot_parameters.rowwise()){
         std::cout << "Sampling initial snapshot at " << snap_param << std::endl;
         std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> fom_solution = solveSnapshotFOM(snap_param);
-        dealii::LinearAlgebra::distributed::Vector<double> state_tmp = fom_solution->state;
-        current_pod->addSnapshot(state_tmp -= initial_conditions);
+        current_pod->addSnapshot(fom_solution->state);
     }
 }
 
@@ -412,10 +401,10 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         std::cout << snapshot_parameters << std::endl;
 
         initial_rom_parameters.resize(4,2);
-        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                  0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
         std::cout << initial_rom_parameters << std::endl;
     }
@@ -438,11 +427,12 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
 
         std::cout << snapshot_parameters << std::endl;
 
-        initial_rom_parameters.resize(4,2);
-        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+        initial_rom_parameters.resize(5,2);
+        initial_rom_parameters << parameter1_range[0], parameter2_range[0],
+                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
         std::cout << initial_rom_parameters << std::endl;
     }

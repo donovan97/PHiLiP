@@ -36,29 +36,28 @@ public:
     ~OnlinePOD () {};
 
     ///Function to get POD basis for all derived classes
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     void addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot);
 
     void computeBasis();
 
-    std::vector<dealii::LinearAlgebra::ReadWriteVector<double>> snapshotVectors;
+    dealii::LAPACKFullMatrix<double> fullBasis;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
-    dealii::LAPACKFullMatrix<double> massMatrix;
-
-    dealii::LAPACKFullMatrix<double> fullBasis;
-
-    Epetra_CrsGraph mass_matrix_sparsity;
-
     std::shared_ptr<DGBase<dim,double>> dg;
+
 
     MatrixXd snapshotMatrix;
 
     MatrixXd pod_basis;
 
     MatrixXd getEigenPODBasis() override;
+
+    VectorXd getReferenceState() override;
+
+    VectorXd reference_state;
 
 };
 

@@ -20,6 +20,8 @@ public:
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
 
     virtual Eigen::MatrixXd getEigenPODBasis() {return Eigen::MatrixXd(0,0);};
+
+    virtual Eigen::VectorXd getReferenceState() {return Eigen::VectorXd(0);};
 };
 
 /// Interface for coarse basis

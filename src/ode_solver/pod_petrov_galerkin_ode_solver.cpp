@@ -12,7 +12,7 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
 {}
 
 template <int dim, typename real, typename MeshType>
-void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
+void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -22,7 +22,14 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     this->dg->system_matrix *= -1.0;
 
-    this->dg->add_mass_matrices(1.0/dt);
+    if (pseudotime) {
+        const double CFL = dt;
+        this->dg->time_scaled_mass_matrices(CFL);
+        this->dg->add_time_scaled_mass_matrices();
+    } else {
+        this->dg->add_mass_matrices(1.0/dt);
+    }
+
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
@@ -62,8 +69,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     this->pcout << LHS2 << std::endl;
 
-
-
     dealii::LinearAlgebra::ReadWriteVector<double> read_right_hand_side(this->dg->right_hand_side.size());
     read_right_hand_side.import(this->dg->right_hand_side, dealii::VectorOperation::values::insert);
     //snapshotVectors.push_back(read_snapshot);
@@ -75,107 +80,39 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     Eigen::MatrixXd eigen_rhs = -pod->getEigenPODBasis().transpose() * eigen_right_hand_side;
     this->pcout << eigen_rhs << std::endl;
 
-    Eigen::ColPivHouseholderQR<Eigen::MatrixXd> householder(LHS);
-    Eigen::VectorXd eigen_reduced_solution_update = householder.solve(eigen_right_hand_side);
+    Eigen::HouseholderQR<Eigen::MatrixXd> householder(LHS);
+    reduced_solution_update = householder.solve(eigen_right_hand_side);
 
-    //this->pcout << eigen_reduced_solution_update << std::endl;
-
-    dealii::LinearAlgebra::distributed::Vector<double> solution_read_write(this->reduced_solution_update->size());
-    for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
-        solution_read_write(i) = eigen_reduced_solution_update(i);
-        //this->pcout << eigen_reduced_solution_update(i) << std::endl;
-    }
-
-    //*reduced_solution_update = solution_read_write;
-    //reduced_solution_update->compress(dealii::VectorOperation::insert);
-
-    reduced_solution_update->copy_locally_owned_data_from(solution_read_write);
-
-    dealii::LinearAlgebra::distributed::Vector<double> result(*reduced_solution_update);
-    for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
-        this->pcout << result(i) << std::endl;
-    }
+    this->pcout << reduced_solution_update << std::endl;
 
     this->pcout << "here2" << std::endl;
 
     linesearch();
 
-    this->update_norm = this->solution_update.l2_norm();
+    //FIX THIS this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
 }
 
 template <int dim, typename real, typename MeshType>
 double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 {
-    /*
-    this->pcout << "here3" << std::endl;
-    const auto old_reduced_solution = reduced_solution;
     double step_length = 1.0;
-    this->pcout << "here4" << std::endl;
     const double step_reduction = 0.5;
     const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
-    this->pcout << "here5" << std::endl;
-    const double initial_residual = this->dg->get_residual_l2norm();
-    this->pcout << "here6" << std::endl;
-    //reduced_solution = old_reduced_solution;
-    reduced_solution.add(step_length, *this->reduced_solution_update);
-    //for(unsigned int i = 0 ; i < reduced_solution.size() ; i++){
-    //    this->pcout << reduced_solution(i) << std::endl;
-    //}
-    this->pcout << "here7" << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> new_solution(this->dg->solution.size());
-    pod->getPODBasis()->vmult(new_solution, reduced_solution);
-    //for(unsigned int i = 0 ; i < new_solution.size() ; i++){
-    //    this->pcout << new_solution(i) << std::endl;
-    //}
-    this->pcout << "here7.2" << std::endl;
-    this->dg->solution.copy_locally_owned_data_from(new_solution);
-    //this->dg->solution = new_solution;
-    this->pcout << "here7.3" << std::endl;
 
-    this->dg->solution.add(1, reference_solution);
-    this->pcout << "here8" << std::endl;
-    this->dg->assemble_residual ();
-    double new_residual = this->dg->get_residual_l2norm();
-    this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
-    this->pcout << "here9" << std::endl;
-    int iline = 0;
-    for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
-        step_length = step_length * step_reduction;
-        reduced_solution = old_reduced_solution;
-        reduced_solution.add(step_length, *this->reduced_solution_update);
-        new_solution.reinit(this->dg->solution.size());
-        pod->getPODBasis()->vmult(new_solution, reduced_solution);
-        this->dg->solution.copy_locally_owned_data_from(new_solution);
-        //this->dg->solution = new_solution;
-        this->dg->solution.add(1, reference_solution);
-        this->dg->assemble_residual();
-        new_residual = this->dg->get_residual_l2norm();
-        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    const auto old_reduced_solution = reduced_solution;
+    const double initial_residual = this->dg->get_residual_l2norm();
+
+    reduced_solution += step_length*reduced_solution_update;
+
+    Eigen::VectorXd new_solution = reference_solution + pod->getEigenPODBasis()*reduced_solution;
+
+    dealii::LinearAlgebra::ReadWriteVector<double> write_solution(this->dg->solution.size());
+    for(unsigned int i = 0 ; i < new_solution.size() ; i++){
+        write_solution(i) = new_solution(i);
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
-
-    return step_length;
-     */
-    const auto old_reduced_solution = reduced_solution;
-    double step_length = 1.0;
-
-    const double step_reduction = 0.5;
-    const int maxline = 10;
-    const double reduction_tolerance_1 = 1.0;
-
-    const double initial_residual = this->dg->get_residual_l2norm();
-
-    reduced_solution = old_reduced_solution;
-    reduced_solution.add(step_length, *this->reduced_solution_update);
-    //pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-    //this->dg->solution.add(1, reference_solution);
-
-    dealii::LinearAlgebra::distributed::Vector<double> new_solution(this->dg->solution.size());
-    pod->getPODBasis()->vmult(new_solution, reduced_solution);
-    new_solution.add(1, reference_solution);
-    this->dg->solution.copy_locally_owned_data_from(new_solution);
+    this->dg->solution.import(write_solution, dealii::VectorOperation::values::insert);
 
     for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
         this->pcout << this->dg->solution(i) << std::endl;
@@ -189,20 +126,21 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         reduced_solution = old_reduced_solution;
-        reduced_solution.add(step_length, *this->reduced_solution_update);
-        //pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-        //this->dg->solution.add(1, reference_solution);
 
-        new_solution.reinit(this->dg->solution.size());
-        pod->getPODBasis()->vmult(new_solution, reduced_solution);
-        new_solution.add(1, reference_solution);
-        this->dg->solution.copy_locally_owned_data_from(new_solution);
+        reduced_solution += step_length*reduced_solution_update;
+        new_solution = reference_solution + pod->getEigenPODBasis()*reduced_solution;
+
+        write_solution.reinit(this->dg->solution.size());
+        for(unsigned int i = 0 ; i < new_solution.size() ; i++){
+            write_solution(i) = new_solution(i);
+        }
+        this->dg->solution.import(write_solution, dealii::VectorOperation::values::insert);
 
         this->dg->assemble_residual();
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline == 0) this->CFL_factor *= 1.1;
 
     return step_length;
 }
@@ -211,18 +149,26 @@ template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
+    reference_solution = this->pod->getReferenceState();
+
+    dealii::LinearAlgebra::ReadWriteVector<double> read_solution(this->dg->solution.size());
+    read_solution.import(this->dg->solution, dealii::VectorOperation::values::insert);
+    Eigen::VectorXd initial_condition(this->dg->solution.size());
+    for(unsigned int i = 0 ; i < this->dg->solution.size() ; i++){
+        initial_condition(i) = read_solution(i);
+    }
+
+    reduced_solution = pod->getEigenPODBasis().transpose()*(initial_condition - reference_solution);
+    Eigen::VectorXd projected_initial_condition = reference_solution + pod->getEigenPODBasis()*reduced_solution;
+
+    dealii::LinearAlgebra::ReadWriteVector<double> write_solution(this->dg->solution.size());
+    for(unsigned int i = 0 ; i < this->dg->solution.size() ; i++){
+        write_solution(i) = projected_initial_condition(i);
+    }
+    this->dg->solution.import(write_solution, dealii::VectorOperation::values::insert);
+
     const bool do_inverse_mass_matrix = false;
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
-
-    this->solution_update.reinit(this->dg->right_hand_side);
-
-    reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getEigenPODBasis().cols());
-    //reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>(pod->getEigenPODBasis().rows(), pod->getEigenPODBasis().cols(), pod->getPODBasis()->n());
-    reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
-    reference_solution = this->dg->solution; //Set reference solution to initial conditions
-    reduced_solution = dealii::LinearAlgebra::distributed::Vector<double>(pod->getEigenPODBasis().cols()); //Zero if reference solution is the initial conditions
-    reduced_solution *= 0;
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

@@ -37,16 +37,16 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    Eigen::VectorXd reduced_solution_update;
 
     /// Reduced rhs for linear solver
     //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Reference solution for consistency
-    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
+    Eigen::VectorXd reference_solution;
 
     /// Reduced solution
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
+    Eigen::VectorXd reduced_solution;
 
     /// Psi = J * V
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> petrov_galerkin_basis;
