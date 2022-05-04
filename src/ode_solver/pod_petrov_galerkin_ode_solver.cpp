@@ -169,8 +169,13 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 
     reduced_solution = old_reduced_solution;
     reduced_solution.add(step_length, *this->reduced_solution_update);
-    pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-    this->dg->solution.add(1, reference_solution);
+    //pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
+    //this->dg->solution.add(1, reference_solution);
+
+    dealii::LinearAlgebra::distributed::Vector<double> new_solution(this->dg->solution.size());
+    pod->getPODBasis()->vmult(new_solution, reduced_solution);
+    new_solution.add(1, reference_solution);
+    this->dg->solution.copy_locally_owned_data_from(new_solution);
 
     for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
         this->pcout << this->dg->solution(i) << std::endl;
@@ -185,8 +190,14 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         step_length = step_length * step_reduction;
         reduced_solution = old_reduced_solution;
         reduced_solution.add(step_length, *this->reduced_solution_update);
-        pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-        this->dg->solution.add(1, reference_solution);
+        //pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
+        //this->dg->solution.add(1, reference_solution);
+
+        new_solution.reinit(this->dg->solution.size());
+        pod->getPODBasis()->vmult(new_solution, reduced_solution);
+        new_solution.add(1, reference_solution);
+        this->dg->solution.copy_locally_owned_data_from(new_solution);
+
         this->dg->assemble_residual();
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
