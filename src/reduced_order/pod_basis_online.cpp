@@ -47,7 +47,14 @@ void OnlinePOD<dim>::computeBasis() {
         }
     }
 
-    basis_tmp.compress(dealii::VectorOperation::add);
+    fullBasis.reinit(snapshotMatrix.rows(), snapshotMatrix.cols());
+    for(unsigned int m = 0 ; m < snapshotMatrix.rows() ; m++){
+        for(unsigned int n = 0 ; n < snapshotMatrix.cols() ; n++){
+            fullBasis.set(m, n, pod_basis(m,n));
+        }
+    }
+
+    basis_tmp.compress(dealii::VectorOperation::insert);
 
     basis->reinit(basis_tmp);
     basis->copy_from(basis_tmp);
