@@ -97,11 +97,11 @@ public:
 
     RowVector2d getMaxErrorROM() const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(RowVector2d parameter) const;
+    std::shared_ptr<ProperOrthogonalDecomposition::FOMSolution<dim,nstate>> solveSnapshotFOM(const RowVector2d& parameter) const;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(RowVector2d parameter) const;
+    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVector2d& parameter) const;
 
-    Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+    Parameters::AllParameters reinitParams(const RowVector2d& parameter) const;
 
     std::shared_ptr<Functional<dim,nstate,double>> functionalFactory(std::shared_ptr<DGBase<dim, double>> dg) const;
 

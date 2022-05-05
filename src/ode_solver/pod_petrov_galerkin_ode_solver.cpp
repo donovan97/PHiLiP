@@ -44,7 +44,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     */
     //Petrov-Galerkin projection, petrov_galerkin_basis = V^T*J^T, pod basis V, system matrix J
     //V^T*J*V*p = -V^T*R
-    this->pcout << "here1" << std::endl;
 
     dealii::TrilinosWrappers::SparseMatrix::iterator system_matrix_it = this->dg->system_matrix.begin();
     dealii::TrilinosWrappers::SparseMatrix::iterator system_matrix_it_end = this->dg->system_matrix.end();
@@ -66,10 +65,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     Eigen::MatrixXd LHS = eigen_system_matrix * pod->getEigenPODBasis();
 
-    Eigen::MatrixXd LHS2 = LHS.transpose() * LHS;
-
-    this->pcout << LHS2 << std::endl;
-
     dealii::LinearAlgebra::ReadWriteVector<double> read_right_hand_side(this->dg->right_hand_side.size());
     read_right_hand_side.import(this->dg->right_hand_side, dealii::VectorOperation::values::insert);
     //snapshotVectors.push_back(read_snapshot);
@@ -79,14 +74,12 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     }
 
     Eigen::MatrixXd eigen_rhs = -pod->getEigenPODBasis().transpose() * eigen_right_hand_side;
-    this->pcout << eigen_rhs << std::endl;
 
     Eigen::HouseholderQR<Eigen::MatrixXd> householder(LHS);
     reduced_solution_update = householder.solve(eigen_right_hand_side);
 
+    this->pcout << "Reduced solution update:" << std::endl;
     this->pcout << reduced_solution_update << std::endl;
-
-    this->pcout << "here2" << std::endl;
 
     linesearch();
 
@@ -102,7 +95,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
 
-    const auto old_reduced_solution = reduced_solution;
+    const Eigen::VectorXd old_reduced_solution = reduced_solution;
     const double initial_residual = this->dg->get_residual_l2norm();
 
     reduced_solution += step_length*reduced_solution_update;
@@ -115,9 +108,9 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
     }
     this->dg->solution.import(write_solution, dealii::VectorOperation::values::insert);
 
-    for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
-        this->pcout << this->dg->solution(i) << std::endl;
-    }
+    //for(unsigned int i = 0 ; i < pod->getEigenPODBasis().cols() ; i++){
+    //    this->pcout << this->dg->solution(i) << std::endl;
+    //}
 
     this->dg->assemble_residual ();
     double new_residual = this->dg->get_residual_l2norm();
