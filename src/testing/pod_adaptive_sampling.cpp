@@ -24,7 +24,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     std::ofstream out_file("POD_adaptation_basis_0.txt");
     unsigned int precision = 16;
     current_pod->fullBasis.print_formatted(out_file, precision);
-    placeInitialROMs();
+    //placeInitialROMs();
     //placeTriangulationROMs();
     ProperOrthogonalDecomposition::Delaunay delaunay(snapshot_parameters);
     placeTriangulationROMs(delaunay);
@@ -213,14 +213,6 @@ RowVector2d AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         //Ensure that optimization did not converge outside of the domain or diverge.
         RowVector2d rom_unscaled_optim(2);
         for(int k = 0 ; k < 2 ; k++){
-            /*
-            if(rom_scaled(k) > 1){
-                rom_scaled(k) = 1;
-            }
-            if(rom_scaled(k) < 0){
-                rom_scaled(k) = 0;
-            }
-            */
             double min = parameters.col(k).minCoeff();
             double max = parameters.col(k).maxCoeff();
             rom_unscaled_optim(k) = (rom_scaled(k)*(max - min)) + min;
@@ -424,12 +416,16 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                 parameter1_range[1], parameter2_range[1],
                 parameter1_range[1], parameter2_range[0],
                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+                //0.1*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.4*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                //0.2*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.8*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                //0.3*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.2*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                //0.6*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.1*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                //0.8*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.9*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
         std::cout << snapshot_parameters << std::endl;
 
-        initial_rom_parameters.resize(5,2);
-        initial_rom_parameters << parameter1_range[0], parameter2_range[0],
-                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+        initial_rom_parameters.resize(4,2);
+        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];

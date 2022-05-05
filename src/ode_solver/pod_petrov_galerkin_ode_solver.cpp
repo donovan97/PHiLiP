@@ -12,7 +12,7 @@ PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::s
 {}
 
 template <int dim, typename real, typename MeshType>
-void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
+void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -22,6 +22,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     this->dg->system_matrix *= -1.0;
 
+    /*
     if (pseudotime) {
         const double CFL = dt;
         this->dg->time_scaled_mass_matrices(CFL);
@@ -29,7 +30,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
     } else {
         this->dg->add_mass_matrices(1.0/dt);
     }
-
+    */
 
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
@@ -140,7 +141,7 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 1.1;
+    //if (iline == 0) this->CFL_factor *= 1.1;
 
     return step_length;
 }
