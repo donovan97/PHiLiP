@@ -28,7 +28,7 @@ NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const p
 }
 
 template <int dim, int nstate>
-void NACA0012<dim,nstate>::display_flow_solver_setup() const
+void NACA0012<dim,nstate>::display_flow_solver_setup(std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition) const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
@@ -38,18 +38,29 @@ void NACA0012<dim,nstate>::display_flow_solver_setup() const
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
     this->pcout << "- PDE Type: " << pde_string << std::endl;
     this->pcout << "- Polynomial degree: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl;
+    if (pde_type == PDE_enum::navier_stokes){
+        this->pcout << "- Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
+    }
     this->pcout << "- Courant-Friedrich-Lewy number: " << this->all_param.flow_solver_param.courant_friedrich_lewy_number << std::endl;
-    this->pcout << "- Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     this->pcout << "- Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     this->pcout << "- Angle of attack: " << this->all_param.euler_param.angle_of_attack*180/pi << std::endl;
     this->pcout << "- Side-slip angle: " << this->all_param.euler_param.side_slip_angle*180/pi << std::endl;
+    this->pcout << "- Farfield conditions: " << std::endl;
+    const dealii::Point<dim> dummy_point;
+    for (int s=0;s<nstate;s++) {
+        this->pcout << "  - State " << s << "; Value: " << initial_condition->value(dummy_point, s) << std::endl;
+    }
 }
 
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 {
     //Dummy triangulation
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(MPI_COMM_WORLD);
+    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
+#if PHILIP_DIM!=1
+            this->mpi_communicator
+#endif
+    );
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
     dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
     grid->refine_global();
@@ -65,11 +76,9 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     for (unsigned int i=0; i<this->all_param.grid_refinement_study_param.num_refinements; ++i) {
         dg->high_order_grid->refine_global();
     }
-    const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
-    const unsigned int n_dofs = dg->dof_handler.n_dofs();
     this->pcout << "Dimension: " << dim << "\t Polynomial degree p: " << this->all_param.grid_refinement_study_param.poly_degree << std::endl
-          << ". Number of active cells: " << n_global_active_cells
-          << ". Number of degrees of freedom: " << n_dofs
+          << ". Number of active cells: " << dg->triangulation->n_global_active_cells()
+          << ". Number of degrees of freedom: " << dg->dof_handler.n_dofs()
           << std::endl;
 }
 
