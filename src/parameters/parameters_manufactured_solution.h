@@ -26,6 +26,7 @@ public:
         cosine_solution,
         additive_solution,
         exp_solution,
+        gaussian_source_term,
         poly_solution,
         even_poly_solution,
         atan_solution,
@@ -48,6 +49,8 @@ public:
 
     /// Diffusion coefficient
     double diffusion_coefficient;
+
+    double gaussian_source_height;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

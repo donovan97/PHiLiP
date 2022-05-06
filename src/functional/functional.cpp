@@ -1191,11 +1191,11 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
 
     const double normLp = param.normLp;
 
-    ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
+    //ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(dg->all_parameters, nstate);
     std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
-        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(dg->all_parameters, nstate);
     
     const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 

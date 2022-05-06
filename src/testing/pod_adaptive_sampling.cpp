@@ -340,6 +340,10 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
         parameters.euler_param.mach_inf = parameter(0);
         parameters.euler_param.angle_of_attack = parameter(1); //radians!
     }
+    else if (flow_type == FlowCaseEnum::diffusion_gaussian_source){
+        parameters.manufactured_convergence_study_param.manufactured_solution_param.gaussian_source_height = parameter(0);
+        parameters.manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient = parameter(1);
+    }
     else{
         std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
@@ -355,12 +359,18 @@ std::shared_ptr<Functional<dim,nstate,double>> AdaptiveSampling<dim, nstate>::fu
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
         if constexpr (dim==1 && nstate==dim){
             std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
-            return std::make_shared<BurgersRewienskiFunctional<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
+            return std::make_shared<SolutionIntegral<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
         }
     }
     else if (flow_type == FlowCaseEnum::naca0012){
         if constexpr (dim==2 && nstate==dim+2){
             return std::make_shared<LiftDragFunctional<dim,nstate,double>>(dg, LiftDragFunctional<dim,nstate,double>::Functional_types::lift);
+        }
+    }
+    else if (flow_type == FlowCaseEnum::diffusion_gaussian_source){
+        if constexpr (dim==2 && nstate==1){
+            std::shared_ptr< DGBaseState<dim,nstate,double>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double>>(dg);
+            return std::make_shared<SolutionIntegral<dim,nstate,double>>(dg,dg_state->pde_physics_fad_fad,true,false);
         }
     }
     else{
@@ -432,14 +442,58 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
 
         std::cout << initial_rom_parameters << std::endl;
     }
+    else if (flow_type == FlowCaseEnum::diffusion_gaussian_source){
+        parameter1_name = "gaussian_height";
+        parameter2_name = "diffusion_coefficient";
+        parameter1_range.resize(2);
+        parameter2_range.resize(2);
+        parameter1_range << 1, 10;
+        parameter2_range << 0.0001, 0.1;
+
+        snapshot_parameters.resize(5,2);
+        snapshot_parameters  << parameter1_range[0], parameter2_range[0],
+                parameter1_range[0], parameter2_range[1],
+                parameter1_range[1], parameter2_range[1],
+                parameter1_range[1], parameter2_range[0],
+                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+
+        std::cout << snapshot_parameters << std::endl;
+
+        initial_rom_parameters.resize(4,2);
+        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+
+        std::cout << initial_rom_parameters << std::endl;
+    }
     else{
         std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
 }
 
-template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
-template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+template <int dim, int nstate, typename real>
+template <typename real2>
+real2 SolutionIntegral<dim,nstate,real>::evaluate_volume_integrand(
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+        const dealii::Point<dim,real2> &/*phys_coord*/,
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+{
+    real2 val = 0;
 
+// integrating over the domain
+    for (int istate=0; istate<nstate; ++istate) {
+        val += soln_at_q[istate];
+    }
+
+    return val;
+}
+
+template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+template class AdaptiveSampling<PHILIP_DIM, 1>;
+
+template class SolutionIntegral<PHILIP_DIM, PHILIP_DIM, double>;
 }
 }

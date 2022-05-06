@@ -431,7 +431,7 @@ int FlowSolver<dim,nstate>::run_test() const
     return 0;
 }
 
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,1>;
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 
 //=========================================================
@@ -461,6 +461,11 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<BurgersRewienskiSnapshot<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::diffusion_gaussian_source){
+        if constexpr (dim==2 && nstate==1){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<DiffusionGaussian<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else if (flow_type == FlowCaseEnum::naca0012){
         if constexpr (dim==2 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
@@ -473,7 +478,7 @@ FlowSolverFactory<dim,nstate>
     return nullptr;
 }
 
-template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolverFactory <PHILIP_DIM,1>;
 template class FlowSolverFactory <PHILIP_DIM,PHILIP_DIM+2>;
 
 

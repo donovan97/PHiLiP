@@ -144,12 +144,26 @@ public:
 
 /// Initial condition 0.
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_Zero : public dealii::Function<dim>
+class InitialConditionFunction_Zero: public InitialConditionFunction<dim,nstate,real>
 {
 public:
     /// Constructor to initialize dealii::Function
     InitialConditionFunction_Zero()
-    : dealii::Function<dim,real>(nstate)
+    : InitialConditionFunction<dim,nstate,real>()
+    { }
+
+    /// Returns zero.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Initial condition 1.
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_One: public InitialConditionFunction<dim,nstate,real>
+{
+public:
+    /// Constructor to initialize dealii::Function
+    InitialConditionFunction_One()
+            : InitialConditionFunction<dim,nstate,real>()
     { }
 
     /// Returns zero.

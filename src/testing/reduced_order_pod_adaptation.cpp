@@ -121,10 +121,10 @@ for (int istate=0; istate<nstate; ++istate) {
 return val;
 }
 
-
 #if PHILIP_DIM==1
 template class ReducedOrderPODAdaptation<PHILIP_DIM,PHILIP_DIM>;
 template class BurgersRewienskiFunctional<PHILIP_DIM, PHILIP_DIM, double>;
 #endif
+
 } // Tests namespace
 } // PHiLiP namespace

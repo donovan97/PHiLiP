@@ -32,7 +32,8 @@ set(TESTS_SOURCE
     taylor_green_vortex_restart_check.cpp
     flow_solver_cases/naca0012.cpp
     pod_adaptive_sampling.cpp
-    adaptive_sampling_testing.cpp)
+    adaptive_sampling_testing.cpp
+    flow_solver_cases/2D_diffusion_gaussian_source.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

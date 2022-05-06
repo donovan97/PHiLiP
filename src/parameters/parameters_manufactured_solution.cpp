@@ -20,6 +20,7 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       dealii::Patterns::Selection(
                       " sine_solution | "
                       " zero_solution | "
+                      " gaussian_source_term | "
                       " cosine_solution | "
                       " additive_solution | "
                       " exp_solution | "
@@ -39,6 +40,7 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       "Choices are "
                       " <sine_solution | "
                       "  zero_solution | "
+                      "  gaussian_source_term | "
                       "  cosine_solution | "
                       "  additive_solution | "
                       "  exp_solution | "
@@ -91,6 +93,11 @@ void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm
                       dealii::Patterns::Double(),
                       "Set the diffusion matrix coefficient.");
 
+    // diffusion coefficient
+    prm.declare_entry("gaussian_source_height", "2",
+                      dealii::Patterns::Double(),
+                      "Set the max height of Gaussian source term.");
+
 }
 
 void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
@@ -102,7 +109,8 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     else if(manufactured_solution_string == "zero_solution")          {manufactured_solution_type = zero_solution;}
     else if(manufactured_solution_string == "cosine_solution")        {manufactured_solution_type = cosine_solution;} 
     else if(manufactured_solution_string == "additive_solution")      {manufactured_solution_type = additive_solution;} 
-    else if(manufactured_solution_string == "exp_solution")           {manufactured_solution_type = exp_solution;} 
+    else if(manufactured_solution_string == "exp_solution")           {manufactured_solution_type = exp_solution;}
+    else if(manufactured_solution_string == "gaussian_source_term")   {manufactured_solution_type = gaussian_source_term;}
     else if(manufactured_solution_string == "poly_solution")          {manufactured_solution_type = poly_solution;} 
     else if(manufactured_solution_string == "even_poly_solution")     {manufactured_solution_type = even_poly_solution;} 
     else if(manufactured_solution_string == "atan_solution")          {manufactured_solution_type = atan_solution;}
@@ -130,6 +138,8 @@ void ManufacturedSolutionParam::parse_parameters(dealii::ParameterHandler &prm)
     advection_vector[2] = prm.get_double("advection_2");
 
     diffusion_coefficient = prm.get_double("diffusion_coefficient");
+
+    gaussian_source_height = prm.get_double("gaussian_source_height");
 }
 
 dealii::Tensor<2,3,double> ManufacturedSolutionParam::get_default_diffusion_tensor()

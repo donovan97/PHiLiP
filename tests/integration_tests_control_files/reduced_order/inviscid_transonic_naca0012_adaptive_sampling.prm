@@ -22,10 +22,6 @@ subsection euler
   set angle_of_attack = 1.25
 end
 
-subsection linear solver
-  set linear_solver_type = direct
-end
-
 subsection ODE solver
   set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-15

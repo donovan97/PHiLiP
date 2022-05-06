@@ -44,6 +44,20 @@ inline real ManufacturedSolutionZero<dim,real>
 }
 
 template <int dim, typename real>
+inline real ManufacturedSolutionGaussianSourceTerm<dim,real>
+::value (const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 0.0;
+    double a = param->manufactured_convergence_study_param.manufactured_solution_param.gaussian_source_height;
+    for (int d=0; d<dim; d++) {
+        value += pow((point[d]-0.5), 2);
+        assert(isfinite(value));
+    }
+    value = a*exp(-value);
+    return value;
+}
+
+template <int dim, typename real>
 inline real ManufacturedSolutionSine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
@@ -235,6 +249,19 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,real>
     dealii::Tensor<1,dim,real> gradient;
     for(unsigned int i = 0; i < dim; i++){
         gradient[i] = 0;
+    }
+    return gradient;
+}
+
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionGaussianSourceTerm<dim,real>
+::gradient (const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    double a = param->manufactured_convergence_study_param.manufactured_solution_param.gaussian_source_height;
+    dealii::Tensor<1,dim,real> gradient;
+    if constexpr(dim == 2) {
+        gradient[0] = -2*a*(point[0]-0.5)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
+        gradient[1] = -2*a*(point[1]-0.5)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
     }
     return gradient;
 }
@@ -576,6 +603,21 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,real>
         for(unsigned int j = 0; j < dim; j++){
             hessian[i][j] = 0;
         }
+    }
+    return hessian;
+}
+
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionGaussianSourceTerm<dim,real>
+::hessian (const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    double a = param->manufactured_convergence_study_param.manufactured_solution_param.gaussian_source_height;
+    dealii::SymmetricTensor<2,dim,real> hessian;
+    if constexpr(dim == 2) {
+        hessian[0][0] = 4*a*pow((point[0]-0.5),2)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2))) - 2*a*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
+        hessian[0][1] = 4*a*(point[0]-0.5)*(point[1]-0.5)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
+        hessian[1][0] = 4*a*(point[0]-0.5)*(point[1]-0.5)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
+        hessian[1][1] = 4*a*pow((point[1]-0.5),2)*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2))) - 2*a*exp(-(pow((point[0]-0.5), 2)+pow((point[1]-0.5), 2)));
     }
     return hessian;
 }
@@ -1115,27 +1157,20 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,real>
 }
 
 template <int dim, typename real>
-std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
+std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
 ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
-    Parameters::AllParameters const *const param, 
-    int                                    nstate)
+        Parameters::AllParameters const *const param,
+        int                                    nstate)
 {
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     ManufacturedSolutionEnum solution_type = param->manufactured_convergence_study_param.manufactured_solution_param.manufactured_solution_type;
 
-    return create_ManufacturedSolution(solution_type, nstate);
-}
-
-template <int dim, typename real>
-std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
-ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
-    Parameters::ManufacturedSolutionParam::ManufacturedSolutionType solution_type,
-    int                                                                     nstate)
-{
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
         return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::zero_solution){
         return std::make_shared<ManufacturedSolutionZero<dim,real>>(nstate);
+    }else if(solution_type == ManufacturedSolutionEnum::gaussian_source_term){
+        return std::make_shared<ManufacturedSolutionGaussianSourceTerm<dim,real>>(param,nstate);
     }else if(solution_type == ManufacturedSolutionEnum::cosine_solution){
         return std::make_shared<ManufacturedSolutionCosine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::additive_solution){
@@ -1292,6 +1327,12 @@ template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadType>;
 template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadType>;
 template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,FadFadType>;
 template class ManufacturedSolutionNavah_MS5<PHILIP_DIM,RadFadType>;
+
+template class ManufacturedSolutionGaussianSourceTerm<PHILIP_DIM, double>;
+template class ManufacturedSolutionGaussianSourceTerm<PHILIP_DIM, FadType>;
+template class ManufacturedSolutionGaussianSourceTerm<PHILIP_DIM, RadType>;
+template class ManufacturedSolutionGaussianSourceTerm<PHILIP_DIM, FadFadType>;
+template class ManufacturedSolutionGaussianSourceTerm<PHILIP_DIM, RadFadType>;
 
 template class ManufacturedSolutionFactory<PHILIP_DIM,double>;
 template class ManufacturedSolutionFactory<PHILIP_DIM,FadType>;

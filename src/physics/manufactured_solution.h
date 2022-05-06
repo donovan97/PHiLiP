@@ -161,6 +161,30 @@ public:
     dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/ = 0) const override;
 };
 
+/// Used to set Gaussian-like source term
+template <int dim, typename real>
+class ManufacturedSolutionGaussianSourceTerm
+        : public ManufacturedSolutionFunction<dim, real>
+{
+protected:
+    using dealii::Function<dim,real>::value;
+    using dealii::Function<dim,real>::gradient;
+    using dealii::Function<dim,real>::hessian;
+public:
+    /// Constructor
+    ManufacturedSolutionGaussianSourceTerm(Parameters::AllParameters const *const param, const unsigned int nstate = 1)
+            :   ManufacturedSolutionFunction<dim,real>(nstate)
+            ,   param(param) {}
+    /// Value
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    /// Gradient
+    dealii::Tensor<1,dim,real> gradient (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    /// Hessian
+    dealii::SymmetricTensor<2,dim,real> hessian (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    /// Parameters
+    Parameters::AllParameters const *const param;
+};
+
 /// Product of sine waves manufactured solution
 template <int dim, typename real>
 class ManufacturedSolutionSine 
@@ -701,13 +725,6 @@ public:
     create_ManufacturedSolution(
         Parameters::AllParameters const *const param, 
         int                                    nstate);
-
-    /// Construct Manufactured solution object from enumerator list
-    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
-    create_ManufacturedSolution(
-        ManufacturedSolutionEnum solution_type,
-        int                      nstate);
-
 };
 
 } // namespace PHiLiP

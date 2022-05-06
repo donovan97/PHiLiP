@@ -153,6 +153,9 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::naca0012) {
+    } else if (flow_type == FlowCaseEnum::diffusion_gaussian_source) {
+        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_One<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::naca0012) {
         if constexpr (dim==2 && nstate==dim+2){
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param->euler_param.ref_length,
@@ -178,10 +181,15 @@ real InitialConditionFunction_Zero<dim, nstate, real> :: value(const dealii::Poi
     return 0.0;
 }
 
-template class InitialConditionFunction <PHILIP_DIM,PHILIP_DIM, double>;
-template class InitialConditionFunction <PHILIP_DIM,PHILIP_DIM+2, double>;
-template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM, double>;
+// ========================================================
+// ONE INITIAL CONDITION
+// ========================================================
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_One<dim, nstate, real> :: value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    return 1.0;
+}
+
 template class InitialConditionFunction_BurgersViscous<PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_BurgersRewienski<PHILIP_DIM, PHILIP_DIM, double>;
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM,PHILIP_DIM+2,double>;
@@ -190,5 +198,20 @@ template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,4, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,5, double>;
+template class InitialConditionFunction_One <PHILIP_DIM,1, double>;
+template class InitialConditionFunction_One <PHILIP_DIM,2, double>;
+template class InitialConditionFunction_One <PHILIP_DIM,3, double>;
+template class InitialConditionFunction_One <PHILIP_DIM,4, double>;
+template class InitialConditionFunction_One <PHILIP_DIM,5, double>;
+template class InitialConditionFactory <PHILIP_DIM,1, double>;
+template class InitialConditionFactory <PHILIP_DIM,2, double>;
+template class InitialConditionFactory <PHILIP_DIM,3, double>;
+template class InitialConditionFactory <PHILIP_DIM,4, double>;
+template class InitialConditionFactory <PHILIP_DIM,5, double>;
+template class InitialConditionFunction <PHILIP_DIM,1, double>;
+template class InitialConditionFunction <PHILIP_DIM,2, double>;
+template class InitialConditionFunction <PHILIP_DIM,3, double>;
+template class InitialConditionFunction <PHILIP_DIM,4, double>;
+template class InitialConditionFunction <PHILIP_DIM,5, double>;
 
 } // PHiLiP namespace

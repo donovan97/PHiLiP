@@ -1,6 +1,7 @@
 # Listing of Parameters
 # ---------------------
 # Number of dimensions
+set test_type = POD_adaptive_sampling
 set dimension = 2
 
 # The PDE we want to solve. Choices are
@@ -23,9 +24,9 @@ subsection ODE solver
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
   set ode_solver_type                         = implicit
-    set output_solution_every_x_steps = 1
-   set output_solution_vector_modulo       = 1
-   set solutions_table_filename = diffusion_test_9
+    #set output_solution_every_x_steps = 1
+   #set output_solution_vector_modulo       = 1
+   #set solutions_table_filename = diffusion_test_9
 end
 subsection linear solver
   #set linear_solver_type = direct
@@ -56,35 +57,23 @@ subsection linear solver
     # Number of iterations before restarting GMRES
     set restart_number            = 200
 
-  end 
+  end
+end
+
+subsection flow_solver
+  set flow_case_type = diffusion_gaussian_source
+  set steady_state = true
+end
+
+subsection grid refinement study
+ set poly_degree = 0
+ set num_refinements = 0
+ set grid_size = 4
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = true
   set manufactured_solution_type = gaussian_source_term
-
-  # Last degree used for convergence study
-  set degree_end        = 0
-
-  # Starting degree for convergence study
-  set degree_start      = 0
-
-  # Multiplier on grid size. nth-grid will be of size
-  # (initial_grid^grid_progression)^dim
-  set grid_progression  = 1
-
-  # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 30
-
-  # Number of grids in grid study
-  set number_of_grids   = 1
-
   set gaussian_source_height = 2
   set diffusion_coefficient = 0.0001
-
-end
-
-#Burgers parameters
-subsection burgers
- set rewienski_a = 9.0
 end

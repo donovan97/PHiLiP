@@ -19,6 +19,7 @@ public:
         taylor_green_vortex,
         burgers_viscous_snapshot,
         naca0012,
+        diffusion_gaussian_source,
         burgers_rewienski_snapshot,
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

@@ -81,6 +81,13 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(2d_diffusion_gaussian_source_adaptive_sampling.prm 2d_diffusion_gaussian_source_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME 2D_DIFFUSION_GAUSSIAN_SOURCE_ADAPTIVE_SAMPLING
+        COMMAND mpirun -np 4 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_diffusion_gaussian_source_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
 #configure_file(1d_burgers_viscous_fd_sensitivity.prm 1d_burgers_viscous_fd_sensitivity.prm COPYONLY)
 #add_test(
 #        NAME 1D_BURGERS_VISCOUS_SENSITIVITY
