@@ -17,10 +17,13 @@
 #include "full_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include <Eigen/Dense>
+#include <Eigen/SparseCore>
+
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 using Eigen::RowVector2d;
+
 
 /// Class to hold information about the reduced-order solution
 template <int dim, int nstate>

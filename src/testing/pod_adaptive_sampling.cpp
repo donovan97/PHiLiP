@@ -30,7 +30,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     placeTriangulationROMs(delaunay);
 
     RowVector2d max_error_params = getMaxErrorROM();
-    double tolerance = 1E-03;
+    double tolerance = 1E-16;
     int iteration = 0;
 
     while(max_error > tolerance){

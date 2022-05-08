@@ -8,21 +8,18 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/lac/vector_operation.h>
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include "parameters/all_parameters.h"
 #include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/vector_operation.h>
+#include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include <Epetra_CrsGraph.h>
-#include <Epetra_CrsMatrix.h>
 #include "pod_interfaces.h"
-#include <Eigen/Dense>
-#include <Eigen/SVD>
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_CrsMatrix.h>
+#include <Epetra_Map.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
-using Eigen::MatrixXd;
-using Eigen::VectorXd;
 
 /// Class for full Proper Orthogonal Decomposition basis
 template <int dim>
@@ -36,28 +33,20 @@ public:
     ~OnlinePOD () {};
 
     ///Function to get POD basis for all derived classes
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis();
 
     void addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot);
 
     void computeBasis();
 
-    dealii::LAPACKFullMatrix<double> fullBasis;
+    std::vector<dealii::LinearAlgebra::ReadWriteVector<double>> snapshotVectors;
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 
     std::shared_ptr<DGBase<dim,double>> dg;
 
+    dealii::LAPACKFullMatrix<double> fullBasis;
 
-    MatrixXd snapshotMatrix;
-
-    MatrixXd pod_basis;
-
-    MatrixXd getEigenPODBasis() override;
-
-    VectorXd getReferenceState() override;
-
-    VectorXd reference_state;
 
 };
 

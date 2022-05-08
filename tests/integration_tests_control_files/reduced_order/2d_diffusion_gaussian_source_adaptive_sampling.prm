@@ -68,7 +68,7 @@ end
 subsection grid refinement study
  set poly_degree = 0
  set num_refinements = 0
- set grid_size = 4
+ set grid_size = 25
 end
 
 subsection manufactured solution convergence study

@@ -6,8 +6,8 @@
 #include "linear_solver/linear_solver.h"
 #include "reduced_order/pod_interfaces.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
-#include <Eigen/Dense>
-#include <Eigen/SparseCore>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_Vector.h>
 
 namespace PHiLiP {
 namespace ODE {
@@ -37,16 +37,16 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    Eigen::VectorXd reduced_solution_update;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
 
     /// Reduced rhs for linear solver
-    //std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
+    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;
 
     /// Reference solution for consistency
-    Eigen::VectorXd reference_solution;
+    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
 
     /// Reduced solution
-    Eigen::VectorXd reduced_solution;
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
 
     /// Psi = J * V
     std::unique_ptr<dealii::TrilinosWrappers::SparseMatrix> petrov_galerkin_basis;
