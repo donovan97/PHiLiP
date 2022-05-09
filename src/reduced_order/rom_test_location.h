@@ -18,6 +18,12 @@
 #include "linear_solver/linear_solver.h"
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
+#include <Epetra_Vector.h>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
+
 
 
 namespace PHiLiP {

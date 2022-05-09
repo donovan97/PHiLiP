@@ -38,65 +38,51 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod_updated){
+
     std::cout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
-    dealii::LinearAlgebra::distributed::Vector<double> fineGradient(pod_updated->getPODBasis()->locally_owned_range_indices(), MPI_COMM_WORLD);
-    dealii::LinearAlgebra::distributed::Vector<double> fineResidual(pod_updated->getPODBasis()->locally_owned_range_indices(), MPI_COMM_WORLD);
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod_updated->getPODBasis()->trilinos_matrix()));
+    Epetra_CrsMatrix *epetra_system_matrix_transpose = const_cast<Epetra_CrsMatrix *>(&(rom_solution->system_matrix_transpose->trilinos_matrix()));
 
-    pod_updated->getPODBasis()->Tvmult(fineGradient, rom_solution->gradient);
+    Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose->DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix_transpose, true, *epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
-    //Compute fine jacobian transpose (Petrov-Galerkin)
-    dealii::TrilinosWrappers::SparseMatrix petrov_galerkin_basis;
-    dealii::TrilinosWrappers::SparseMatrix fineJacobianTranspose;
-    rom_solution->system_matrix_transpose->Tmmult(petrov_galerkin_basis, *pod_updated->getPODBasis()); // petrov_galerkin_basis = system_matrix * pod_basis. Note, use transpose in subsequent multiplications
-    petrov_galerkin_basis.Tmmult(fineJacobianTranspose, petrov_galerkin_basis); //reduced_lhs = petrov_galerkin_basis^T * petrov_galerkin_basis , equivalent to V^T*J^T*J*V
+    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
+    Epetra_Map domain_map((int)pod_updated->getPODBasis()->n(), 0, epetra_comm);
+    epetra_petrov_galerkin_basis.FillComplete(domain_map, epetra_system_matrix_transpose->DomainMap());
 
-    dealii::TrilinosWrappers::SparseMatrix::iterator it = fineJacobianTranspose.begin();
-    dealii::TrilinosWrappers::SparseMatrix::iterator it_end = fineJacobianTranspose.end();
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eigenFineJacobianTranspose(fineJacobianTranspose.n(), fineJacobianTranspose.m());
+    std::cout << "here" << std::endl;
 
-    unsigned int row, col;
-    double val;
-    int approximate_elements_per_row = fineJacobianTranspose.n_nonzero_elements()/fineJacobianTranspose.m();
-    eigenFineJacobianTranspose.reserve(Eigen::VectorXi::Constant(fineJacobianTranspose.m(), approximate_elements_per_row));
-    for (; it!=it_end; ++it)
-    {
-        row = it->row();
-        col = it->column();
-        val = it->value();
-        eigenFineJacobianTranspose.insert(row, col) = val;
-    }
-    eigenFineJacobianTranspose.makeCompressed();
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_reduced_gradient(epetra_petrov_galerkin_basis.DomainMap());
 
-    std::cout << eigenFineJacobianTranspose << std::endl;
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
 
-    dealii::LinearAlgebra::ReadWriteVector<double> readFineGradient(fineGradient.size());
-    readFineGradient.import(fineGradient, dealii::VectorOperation::values::insert);
-    Eigen::VectorXd eigenFineGradient(fineGradient.size());
-    for(unsigned int i = 0 ; i < fineGradient.size() ; i++){
-        eigenFineGradient(i) = readFineGradient(i);
-    }
+    Epetra_CrsMatrix epetra_reduced_jacobian(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.DomainMap(), pod_updated->getPODBasis()->n());
+    EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_jacobian);
 
-    Eigen::ColPivHouseholderQR<Eigen::MatrixXd> householder(eigenFineJacobianTranspose);
-    Eigen::VectorXd eigenFineAdjoint = householder.solve(-eigenFineGradient);
+    Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian.DomainMap());
+    Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian, &epetra_reduced_adjoint, &epetra_reduced_gradient);
 
-    std::cout << eigenFineAdjoint << std::endl;
+    Amesos_BaseSolver* Solver;
+    Amesos Factory;
+    std::string SolverType = "Klu";
+    Solver = Factory.Create(SolverType, linearProblem);
+    Teuchos::ParameterList List;
+    List.set("PrintTiming", true);
+    List.set("PrintStatus", true);
+    Solver->SetParameters(List);
+    Solver->SymbolicFactorization();
+    Solver->NumericFactorization();
+    Solver->Solve();
 
-    //Compute fine residual (Petrov_Galerkin)
-    petrov_galerkin_basis.Tvmult(fineResidual, rom_solution->right_hand_side);
-
-    dealii::LinearAlgebra::ReadWriteVector<double> readFineResidual(fineResidual.size());
-    readFineResidual.import(fineResidual, dealii::VectorOperation::values::insert);
-    Eigen::VectorXd eigenFineResidual(fineResidual.size());
-    for(unsigned int i = 0 ; i < fineResidual.size() ; i++){
-        eigenFineResidual(i) = readFineResidual(i);
-    }
-
-    std::cout << eigenFineResidual << std::endl;
+    Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
+    Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
+    epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
     //Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
-    initial_rom_to_final_rom_error = -(eigenFineAdjoint.dot(eigenFineResidual));
+    epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
 
     std::cout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
