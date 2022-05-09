@@ -2,8 +2,8 @@
 #define __POD_BASIS_INTERFACE__
 
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
-#include <Eigen/Dense>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -19,9 +19,7 @@ public:
     /// Function to return basis
     virtual std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() = 0;
 
-    virtual Eigen::MatrixXd getEigenPODBasis() {return Eigen::MatrixXd(0,0);};
-
-    virtual Eigen::VectorXd getReferenceState() {return Eigen::VectorXd(0);};
+    virtual dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() {return dealii::LinearAlgebra::ReadWriteVector<double>(0);};
 };
 
 /// Interface for coarse basis

@@ -14,43 +14,37 @@ OnlinePOD<dim>::OnlinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
 
 template <int dim>
 void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
-    std::cout << "Adding new snapshot to POD basis..." << std::endl;
-    dealii::LinearAlgebra::ReadWriteVector<double> snapshot_vector(snapshot.size());
-    snapshot_vector.import(snapshot, dealii::VectorOperation::values::insert);
-    snapshotVectors.push_back(snapshot_vector);
+    std::cout << "Adding new snapshot to snapshot matrix..." << std::endl;
+    dealii::LinearAlgebra::ReadWriteVector<double> read_snapshot(snapshot.size());
+    read_snapshot.import(snapshot, dealii::VectorOperation::values::insert);
+    VectorXd eigen_snapshot(snapshot.size());
+    for(unsigned int i = 0 ; i < snapshot.size() ; i++){
+        eigen_snapshot(i) = read_snapshot(i);
+    }
+    snapshotMatrix.conservativeResize(snapshot.size(), snapshotMatrix.cols()+1);
+    snapshotMatrix.col(snapshotMatrix.cols()-1) = eigen_snapshot;
 }
 
 template <int dim>
 void OnlinePOD<dim>::computeBasis() {
     std::cout << "Computing POD basis..." << std::endl;
 
-    Teuchos::RCP<const Teuchos::Comm<int> > comm (new Teuchos::MpiComm<int> (MPI_COMM_WORLD));
-    const int myRank = comm->getRank ();
-
-    std::cout << "rank: " << myRank << std::endl;
-
-    dealii::LAPACKFullMatrix<double> snapshot_matrix(snapshotVectors[0].size(), snapshotVectors.size());
-
-    for (unsigned int n = 0; n < snapshotVectors.size(); n++) {
-        for (unsigned int m = 0; m < snapshotVectors[0].size(); m++) {
-            snapshot_matrix(m, n) = snapshotVectors[n][m];
-        }
+    VectorXd reference_state = snapshotMatrix.rowwise().mean();
+    referenceState.reinit(reference_state.size());
+    for(unsigned int i = 0 ; i < reference_state.size() ; i++){
+        referenceState(i) = reference_state(i);
     }
 
-    std::ofstream out_file_snap("snapshot_matrix.txt");
-    unsigned int precision0 = 16;
-    snapshot_matrix.print_formatted(out_file_snap, precision0);
+    snapshotMatrix = snapshotMatrix.colwise() - reference_state;
 
+    Eigen::BDCSVD<MatrixXd> svd(snapshotMatrix, Eigen::DecompositionOptions::ComputeThinU);
+    MatrixXd pod_basis = svd.matrixU();
 
-    snapshot_matrix.compute_svd();
-    dealii::LAPACKFullMatrix<double> svd_u = snapshot_matrix.get_svd_u();
+    fullBasis.reinit(pod_basis.rows(), pod_basis.cols());
 
-
-    fullBasis.reinit(snapshot_matrix.m(), snapshot_matrix.n());
-
-    for (unsigned int m = 0; m < snapshotVectors[0].size(); m++) {
-        for (unsigned int n = 0; n < snapshotVectors.size(); n++) {
-            fullBasis.set(m, n, svd_u(m, n));
+    for (unsigned int m = 0; m < pod_basis.rows(); m++) {
+        for (unsigned int n = 0; n < pod_basis.cols(); n++) {
+            fullBasis.set(m, n, pod_basis(m, n));
         }
     }
 
@@ -61,20 +55,20 @@ void OnlinePOD<dim>::computeBasis() {
 
     Epetra_CrsMatrix *epetra_system_matrix  = const_cast<Epetra_CrsMatrix *>(&(this->dg->system_matrix.trilinos_matrix()));
     Epetra_Map system_matrix_map = epetra_system_matrix->RowMap();
-    Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, snapshotVectors.size());
+    Epetra_CrsMatrix epetra_basis(Epetra_DataAccess::Copy, system_matrix_map, pod_basis.cols());
 
     const int numMyElements = system_matrix_map.NumMyElements(); //Number of elements on the calling processor
 
     for (int localRow = 0; localRow < numMyElements; ++localRow){
         const int globalRow = system_matrix_map.GID(localRow);
         std::cout << "global row: " << globalRow << std::endl;
-        for(int n = 0 ; n < (int)snapshotVectors.size() ; n++){
-            epetra_basis.InsertGlobalValues(globalRow, 1, &fullBasis(globalRow, n), &n);
+        for(int n = 0 ; n < pod_basis.cols() ; n++){
+            epetra_basis.InsertGlobalValues(globalRow, 1, &pod_basis(globalRow, n), &n);
         }
     }
 
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
-    Epetra_Map domain_map((int)snapshotVectors.size(), 0, epetra_comm);
+    Epetra_Map domain_map((int)pod_basis.cols(), 0, epetra_comm);
 
     epetra_basis.FillComplete(domain_map, system_matrix_map);
     //epetra_basis.FillComplete();
@@ -85,19 +79,12 @@ void OnlinePOD<dim>::computeBasis() {
         double* values;
         epetra_basis.ExtractGlobalRowView(globalRow, numentries, values);
 
-        for(int n = 0 ; n < (int)snapshotVectors.size() ; n++){
+        for(int n = 0 ; n < pod_basis.cols() ; n++){
             std::cout << "global row: " << globalRow << "entry: " << values[n] << std::endl;
         }
     }
 
     basis->reinit(epetra_basis);
-
-    //Epetra_CrsMatrix output(Epetra_DataAccess::Copy, system_matrix_map, snapshotVectors.size());
-
-    //EpetraExt::MatrixMatrix::Multiply(*epetra_system_matrix, false, epetra_basis, false, output);
-
-    //dealii::TrilinosWrappers::SparseMatrix import_output;
-    //import_output.reinit(output);
 
     std::cout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
 }
@@ -105,6 +92,11 @@ void OnlinePOD<dim>::computeBasis() {
 template <int dim>
 std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OnlinePOD<dim>::getPODBasis() {
     return basis;
+}
+
+template <int dim>
+dealii::LinearAlgebra::ReadWriteVector<double> OnlinePOD<dim>::getReferenceState() {
+    return referenceState;
 }
 
 template class OnlinePOD <PHILIP_DIM>;

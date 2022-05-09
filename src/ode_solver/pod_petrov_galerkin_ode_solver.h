@@ -37,7 +37,7 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_solution_update;
+    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
 
     /// Reduced rhs for linear solver
     std::unique_ptr<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rhs;

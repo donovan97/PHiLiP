@@ -66,7 +66,8 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 
     EpetraExt::MatrixMatrix::Multiply(epetra_petrov_galerkin_basis, true, epetra_petrov_galerkin_basis, false, epetra_reduced_lhs);
 
-    Epetra_Vector epetra_reduced_solution_update(epetra_reduced_lhs.DomainMap());
+    //Epetra_Vector epetra_reduced_solution_update(epetra_reduced_lhs.DomainMap());
+    Epetra_Vector epetra_reduced_solution_update(Epetra_DataAccess::View, epetra_reduced_lhs.DomainMap(), reduced_solution_update.begin());
 
     Epetra_LinearProblem linearProblem(&epetra_reduced_lhs, &epetra_reduced_solution_update, &epetra_reduced_rhs);
 
@@ -106,31 +107,42 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real dt, const
 template <int dim, typename real, typename MeshType>
 double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 {
-    const auto old_reduced_solution = reduced_solution;
+    const dealii::LinearAlgebra::distributed::Vector<double> old_reduced_solution(reduced_solution);
     double step_length = 1.0;
 
     const double step_reduction = 0.5;
     const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
+    this->pcout << "here5" << std::endl;
 
     const double initial_residual = this->dg->get_residual_l2norm();
+    reduced_solution.add(step_length, this->reduced_solution_update);
+    this->pcout << "here5" << std::endl;
 
-    reduced_solution = old_reduced_solution;
-    reduced_solution.add(step_length, *this->reduced_solution_update);
-    pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-    this->dg->solution.add(1, reference_solution);
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
+    Epetra_Vector solution(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), this->dg->solution.begin());
+    //Epetra_Vector solution(epetra_pod_basis->RangeMap());
+    this->pcout << "here5.1" << std::endl;
+    epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+    this->pcout << "here5.2" << std::endl;
+    this->dg->solution += reference_solution;
+    this->pcout << "here6" << std::endl;
 
-    this->dg->assemble_residual ();
+    this->dg->assemble_residual();
     double new_residual = this->dg->get_residual_l2norm();
     this->pcout << " Step length " << step_length << ". Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+    this->pcout << "here7" << std::endl;
 
     int iline = 0;
     for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_1; ++iline) {
         step_length = step_length * step_reduction;
         reduced_solution = old_reduced_solution;
-        reduced_solution.add(step_length, *this->reduced_solution_update);
-        pod->getPODBasis()->vmult(this->dg->solution, reduced_solution);
-        this->dg->solution.add(1, reference_solution);
+        reduced_solution.add(step_length, this->reduced_solution_update);
+
+        epetra_pod_basis->Multiply(false, epetra_reduced_solution, solution);
+        this->dg->solution += reference_solution;
+
         this->dg->assemble_residual();
         new_residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
@@ -143,18 +155,37 @@ double PODPetrovGalerkinODESolver<dim,real,MeshType>::linesearch()
 template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
+
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
+    reference_solution = this->dg->solution;
+    reference_solution.import(pod->getReferenceState(), dealii::VectorOperation::values::insert);
+    this->pcout << "0..." << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> initial_condition(this->dg->solution);
+    initial_condition -= reference_solution;
+
+    Epetra_CrsMatrix *epetra_pod_basis = const_cast<Epetra_CrsMatrix *>(&(pod->getPODBasis()->trilinos_matrix()));
+    reduced_solution.reinit(pod->getPODBasis()->n());
+    reduced_solution *= 0;
+    Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis->DomainMap(), reduced_solution.begin());
+    Epetra_Vector epetra_initial_condition(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), initial_condition.begin());
+
+    epetra_pod_basis->Multiply(true, epetra_initial_condition, epetra_reduced_solution);
+
+    this->pcout << "1..." << std::endl;
+
+    dealii::LinearAlgebra::distributed::Vector<double> projection_tmp(this->dg->solution);
+    projection_tmp *= 0;
+    Epetra_Vector epetra_projection_tmp(Epetra_DataAccess::View, epetra_pod_basis->RangeMap(), projection_tmp.begin());
+    epetra_pod_basis->Multiply(false, epetra_reduced_solution, epetra_projection_tmp);
+    reference_solution += projection_tmp;
+
+    reduced_solution_update.reinit(pod->getPODBasis()->n());
+    reduced_solution_update *= 0;
+
     const bool do_inverse_mass_matrix = false;
     this->dg->evaluate_mass_matrices(do_inverse_mass_matrix);
 
-    this->solution_update.reinit(this->dg->right_hand_side);
-
-    reduced_solution_update = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    reduced_rhs = std::make_unique<dealii::LinearAlgebra::distributed::Vector<double>>(pod->getPODBasis()->n());
-    petrov_galerkin_basis = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>(pod->getPODBasis()->m(), pod->getPODBasis()->n(), pod->getPODBasis()->n());
-    reduced_lhs = std::make_unique<dealii::TrilinosWrappers::SparseMatrix>();
-    reference_solution = this->dg->solution; //Set reference solution to initial conditions
-    reduced_solution = dealii::LinearAlgebra::distributed::Vector<double>(pod->getPODBasis()->n()); //Zero if reference solution is the initial conditions
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
