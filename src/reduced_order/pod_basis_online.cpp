@@ -30,6 +30,11 @@ void OnlinePOD<dim>::computeBasis() {
     std::cout << "Computing POD basis..." << std::endl;
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
+
+    //for(unsigned int i = 0 ; i < reference_state.size() ; i++){
+    //    reference_state(i) = 1;
+    //}
+
     referenceState.reinit(reference_state.size());
     for(unsigned int i = 0 ; i < reference_state.size() ; i++){
         referenceState(i) = reference_state(i);
@@ -61,7 +66,7 @@ void OnlinePOD<dim>::computeBasis() {
 
     for (int localRow = 0; localRow < numMyElements; ++localRow){
         const int globalRow = system_matrix_map.GID(localRow);
-        std::cout << "global row: " << globalRow << std::endl;
+        //std::cout << "global row: " << globalRow << std::endl;
         for(int n = 0 ; n < pod_basis.cols() ; n++){
             epetra_basis.InsertGlobalValues(globalRow, 1, &pod_basis(globalRow, n), &n);
         }
@@ -73,6 +78,7 @@ void OnlinePOD<dim>::computeBasis() {
     epetra_basis.FillComplete(domain_map, system_matrix_map);
     //epetra_basis.FillComplete();
 
+    /*
     for (int localRow = 0; localRow < numMyElements; ++localRow){
         const int globalRow = system_matrix_map.GID(localRow);
         int numentries;
@@ -83,7 +89,7 @@ void OnlinePOD<dim>::computeBasis() {
             std::cout << "global row: " << globalRow << "entry: " << values[n] << std::endl;
         }
     }
-
+    */
     basis->reinit(epetra_basis);
 
     std::cout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
