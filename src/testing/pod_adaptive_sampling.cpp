@@ -299,7 +299,8 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
     flow_solver->ode_solver->allocate_ode_system();
-    flow_solver->ode_solver->steady_state();
+    //flow_solver->ode_solver->steady_state();
+    flow_solver->ode_solver->initialize_steady_polynomial_ramping(params.flow_solver_param.poly_degree);
 
     this->pcout << "Done solving FOM." << std::endl;
     return flow_solver->dg->solution;
@@ -418,8 +419,8 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         parameter_names[1] = "angle_of_attack";
         parameter1_range.resize(2);
         parameter2_range.resize(2);
-        parameter1_range << 0.5, 0.9;
-        parameter2_range << 0, 4;
+        parameter1_range << 0.5, 0.8;
+        parameter2_range << 0, 3;
         parameter2_range *= pi/180; //convert to radians
 
         int n_halton = 6;
