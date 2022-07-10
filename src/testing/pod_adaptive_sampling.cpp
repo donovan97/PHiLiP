@@ -298,9 +298,13 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
-    flow_solver->ode_solver->allocate_ode_system();
-    //flow_solver->ode_solver->steady_state();
-    flow_solver->ode_solver->initialize_steady_polynomial_ramping(params.flow_solver_param.poly_degree);
+    //flow_solver->ode_solver->allocate_ode_system();
+    if(params.flow_solver_param.steady_state_polynomial_ramping){
+        flow_solver->ode_solver->initialize_steady_polynomial_ramping(params.flow_solver_param.poly_degree);
+    }
+    else{
+        flow_solver->ode_solver->steady_state();
+    }
 
     this->pcout << "Done solving FOM." << std::endl;
     return flow_solver->dg->solution;
