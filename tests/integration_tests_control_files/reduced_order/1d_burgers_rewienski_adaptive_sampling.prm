@@ -40,6 +40,9 @@ subsection reduced order
   set adaptation_tolerance = 0.001
   set path_to_search = .
   set reduced_residual_tolerance = 1e-14
+  set parameter_names = rewienski_a, rewienski_b
+  set parameter_min_values = 2, 0.01
+  set parameter_max_values = 10, 0.1
 end
 
 subsection linear solver
@@ -49,7 +52,7 @@ end
 
 subsection ODE solver
   #set ode_output = quiet
-  set nonlinear_max_iterations = 50
+  set nonlinear_max_iterations = 200
   set nonlinear_steady_residual_tolerance = 1e-14
   set print_iteration_modulo  = 1
   set ode_solver_type = implicit

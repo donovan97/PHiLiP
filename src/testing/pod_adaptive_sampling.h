@@ -56,20 +56,8 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
-    /// Parameter 1 range
-    mutable RowVectorXd parameter1_range;
-
-    /// Parameter 2 range
-    mutable RowVectorXd parameter2_range;
-
-    /// Parameter names
-    mutable std::vector<std::string> parameter_names;
-
     /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
-
-    /// Initial ROM parameters
-    mutable MatrixXd initial_rom_parameters;
 
     /// Vector of parameter-ROMTestLocation pairs
     mutable std::vector<std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;

@@ -81,8 +81,8 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 
     for(auto parameters : snapshot_parameters.rowwise()){
         for(int i = 0 ; i < snapshot_parameters.cols() ; i++){
-            snapshot_table->add_value(parameter_names[i], parameters(i));
-            snapshot_table->set_precision(parameter_names[i], 16);
+            snapshot_table->add_value(all_parameters->reduced_order_param.parameter_names[i], parameters(i));
+            snapshot_table->set_precision(all_parameters->reduced_order_param.parameter_names[i], 16);
         }
     }
 
@@ -93,8 +93,8 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         for(int i = 0 ; i < snapshot_parameters.cols() ; i++){
-            rom_table->add_value(parameter_names[i], it->first(i));
-            rom_table->set_precision(parameter_names[i], 16);
+            rom_table->add_value(all_parameters->reduced_order_param.parameter_names[i], it->first(i));
+            rom_table->set_precision(all_parameters->reduced_order_param.parameter_names[i], 16);
         }
         rom_table->add_value("ROM_errors", it->second->total_error);
         rom_table->set_precision("ROM_errors", 16);
@@ -345,13 +345,34 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+
     if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameters.burgers_param.rewienski_a = parameter(0);
-        parameters.burgers_param.rewienski_b = parameter(1);
+        if(all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(all_parameters->reduced_order_param.parameter_names[0] == "rewienski_a"){
+                parameters.burgers_param.rewienski_a = parameter(0);
+            }
+            else if(all_parameters->reduced_order_param.parameter_names[0] == "rewienski_b"){
+                parameters.burgers_param.rewienski_b = parameter(0);
+            }
+        }
+        else{
+            parameters.burgers_param.rewienski_a = parameter(0);
+            parameters.burgers_param.rewienski_b = parameter(1);
+        }
     }
     else if (flow_type == FlowCaseEnum::naca0012){
-        parameters.euler_param.mach_inf = parameter(0);
-        parameters.euler_param.angle_of_attack = parameter(1); //radians!
+        if(all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                parameters.euler_param.mach_inf = parameter(0);
+            }
+            else if(all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
+                parameters.euler_param.angle_of_attack = parameter(0); //radians!
+            }
+        }
+        else{
+            parameters.euler_param.mach_inf = parameter(0);
+            parameters.euler_param.angle_of_attack = parameter(1); //radians!
+        }
     }
     else{
         this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
@@ -363,17 +384,48 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
 {
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
-    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        parameter_names.resize(2);
-        parameter_names[0] = "rewienski_a";
-        parameter_names[1] = "rewienski_b";
-        parameter1_range.resize(2);
-        parameter2_range.resize(2);
-        parameter1_range << 2, 10;
-        parameter2_range << 0.01, 0.1;
+    const double pi = atan(1.0) * 4.0;
 
+    if(all_parameters->reduced_order_param.parameter_names.size() == 1){
+        RowVectorXd parameter1_range;
+        parameter1_range.resize(2);
+        parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
+        if(all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
+            parameter1_range *= pi/180; //convert to radians
+        }
+
+        //Place parameters at 2 ends and center
+        snapshot_parameters.resize(3,1);
+        snapshot_parameters  << parameter1_range[0],
+                                parameter1_range[1],
+                                (parameter1_range[0]+parameter1_range[1])/2;
+
+        int n_halton = 2;
+        snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
+
+        double *seq;
+        for (int i = 0; i < n_halton; i++)
+        {
+            seq = ProperOrthogonalDecomposition::halton(i+2, 1); //ignore the first two Halton point as they are the left end and center
+                snapshot_parameters(i+3) = seq[0]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+        }
+        delete [] seq;
+
+        this->pcout << snapshot_parameters << std::endl;
+    }
+    else if(all_parameters->reduced_order_param.parameter_names.size() == 2){
+        RowVectorXd parameter1_range;
+        parameter1_range.resize(2);
+        parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
+
+        RowVectorXd parameter2_range;
+        parameter2_range.resize(2);
+        parameter2_range << all_parameters->reduced_order_param.parameter_min_values[1], all_parameters->reduced_order_param.parameter_max_values[1];
+        if(all_parameters->reduced_order_param.parameter_names[1] == "alpha"){
+            parameter2_range *= pi/180; //convert to radians
+        }
+
+        //Place parameters at 4 corners and center
         snapshot_parameters.resize(5,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
                                 parameter1_range[0], parameter2_range[1],
@@ -381,69 +433,26 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                 parameter1_range[1], parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
-        this->pcout << snapshot_parameters << std::endl;
-
-
-
-        initial_rom_parameters.resize(4,2);
-        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                                  0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
-
-        this->pcout << initial_rom_parameters << std::endl;
-    }
-    else if (flow_type == FlowCaseEnum::naca0012){
-        const double pi = atan(1.0) * 4.0;
-        parameter_names.resize(2);
-        parameter_names[0] = "mach_number";
-        parameter_names[1] = "angle_of_attack";
-        parameter1_range.resize(2);
-        parameter2_range.resize(2);
-        parameter1_range << 0.5, 0.8;
-        parameter2_range << 0, 3;
-        parameter2_range *= pi/180; //convert to radians
-
         int n_halton = 6;
-
-        snapshot_parameters.resize(4,2);
-        snapshot_parameters  << //parameter1_range[0], parameter2_range[0],
-                parameter1_range[0], parameter2_range[1],
-                parameter1_range[1], parameter2_range[1],
-                parameter1_range[1], parameter2_range[0],
-                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
-
         snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
 
         double *seq;
         for (int i = 0; i < n_halton; i++)
         {
-            seq = ProperOrthogonalDecomposition::halton(i, 2);
+            seq = ProperOrthogonalDecomposition::halton(i+1, 2); //ignore the first Halton point as it is one of the corners
             for (int j = 0; j < 2; j++)
             {
                 if(j == 0){
-                    snapshot_parameters(i+4, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+                    snapshot_parameters(i+5, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
                 }
                 else if(j == 1){
-                    snapshot_parameters(i+4, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+                    snapshot_parameters(i+5, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
                 }
             }
         }
         delete [] seq;
 
         this->pcout << snapshot_parameters << std::endl;
-
-        initial_rom_parameters.resize(4,2);
-        initial_rom_parameters << 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.25*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0],
-                0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.75*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
-
-        this->pcout << initial_rom_parameters << std::endl;
-    }
-    else{
-        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
-        std::abort();
     }
 }
 

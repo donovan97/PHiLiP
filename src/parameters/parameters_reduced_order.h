@@ -19,6 +19,15 @@ public:
     /// Tolerance of the reduced-order nonlinear residual
     double reduced_residual_tolerance;
 
+    /// Names of parameters
+    std::vector<std::string> parameter_names;
+
+    /// Minimum value of parameters
+    std::vector<double> parameter_min_values;
+
+    /// Maximum value of parameters
+    std::vector<double> parameter_max_values;
+
     ReducedOrderModelParam (); ///< Constructor
 
     /// Declares the possible variables and sets the defaults.
