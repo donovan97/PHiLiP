@@ -41,7 +41,7 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set poly_degree = 0
+  set poly_degree = 1
   set steady_state_polynomial_ramping = true
   subsection grid
     set input_mesh_filename = ../../meshes/naca0012_hopw_ref1
@@ -54,11 +54,11 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set adaptation_tolerance = 0.001
+  set adaptation_tolerance = 1E-04
   set path_to_search = .
   set reduced_residual_tolerance = 5e-13
   set parameter_names = alpha
   set parameter_min_values = 0
   set parameter_max_values = 3
-  set num_halton = 5
+  set num_halton = 0
 end

@@ -27,7 +27,7 @@ end
 
 #Burgers parameters
 subsection burgers
- set rewienski_a = 5.0
+ set rewienski_a = 2.0
  set rewienski_b = 0.04
 end
 

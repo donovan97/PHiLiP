@@ -234,8 +234,19 @@ template <int dim, int nstate>
 bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_points) const{
     bool error_greater_than_tolerance = false;
     for(auto midpoint : rom_points.rowwise()){
-        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>& location){ return location.first == midpoint;} );
-        if(element == rom_locations.end()){
+
+        //Check if ROM point already exists as another ROM point
+        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>& location){ return location.first.isApprox(midpoint);} );
+
+        //Check if ROM point already exists as a snapshot
+        bool snapshot_exists = false;
+        for(auto snap_param : snapshot_parameters.rowwise()){
+            if(snap_param.isApprox(midpoint)){
+                snapshot_exists = true;
+            }
+        }
+
+        if(element == rom_locations.end() && snapshot_exists == false){
             std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, rom_solution);
             rom_locations.emplace_back(std::make_pair(midpoint, rom_location));
