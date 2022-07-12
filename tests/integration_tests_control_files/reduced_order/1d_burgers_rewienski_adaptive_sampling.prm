@@ -43,6 +43,7 @@ subsection reduced order
   set parameter_names = rewienski_a, rewienski_b
   set parameter_min_values = 2, 0.01
   set parameter_max_values = 10, 0.1
+  set num_halton = 0
 end
 
 subsection linear solver

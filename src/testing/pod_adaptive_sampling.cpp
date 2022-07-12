@@ -13,7 +13,6 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
-    tolerance = 1E-03;
 }
 
 template <int dim, int nstate>
@@ -32,7 +31,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
     RowVectorXd max_error_params = getMaxErrorROM();
     int iteration = 0;
 
-    while(max_error > tolerance){
+    while(max_error > all_parameters->reduced_order_param.adaptation_tolerance){
 
         outputErrors(iteration);
 
@@ -240,7 +239,7 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
             std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, rom_solution);
             rom_locations.emplace_back(std::make_pair(midpoint, rom_location));
-            if(abs(rom_location->total_error) > tolerance){
+            if(abs(rom_location->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
                 error_greater_than_tolerance = true;
             }
         }
@@ -279,7 +278,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
     pcout << "Searching ROM points near: " << parameter << std::endl;
     for(int i = 0 ; i < 6 ; i++){
         pcout << "ROM point: " << rom_locations[index[i]].first << " Error: " << rom_locations[index[i]].second->total_error << std::endl;
-        if(std::abs(rom_locations[index[i]].second->total_error) > tolerance){
+        if(std::abs(rom_locations[index[i]].second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
             std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[i]].first);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(rom_locations[index[i]].first, rom_solution);
@@ -386,6 +385,8 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
 {
     const double pi = atan(1.0) * 4.0;
 
+    int n_halton = all_parameters->reduced_order_param.num_halton;
+
     if(all_parameters->reduced_order_param.parameter_names.size() == 1){
         RowVectorXd parameter1_range;
         parameter1_range.resize(2);
@@ -400,10 +401,9 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                 parameter1_range[1],
                                 (parameter1_range[0]+parameter1_range[1])/2;
 
-        int n_halton = 2;
         snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
 
-        double *seq;
+        double *seq = nullptr;
         for (int i = 0; i < n_halton; i++)
         {
             seq = ProperOrthogonalDecomposition::halton(i+2, 1); //ignore the first two Halton point as they are the left end and center
@@ -433,10 +433,9 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                 parameter1_range[1], parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
-        int n_halton = 6;
         snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
 
-        double *seq;
+        double *seq = nullptr;
         for (int i = 0; i < n_halton; i++)
         {
             seq = ProperOrthogonalDecomposition::halton(i+1, 2); //ignore the first Halton point as it is one of the corners

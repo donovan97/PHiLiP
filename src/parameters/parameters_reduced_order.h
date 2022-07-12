@@ -19,6 +19,9 @@ public:
     /// Tolerance of the reduced-order nonlinear residual
     double reduced_residual_tolerance;
 
+    /// Number of Halton sequence points to add to initial snapshot set
+    int num_halton;
+
     /// Names of parameters
     std::vector<std::string> parameter_names;
 

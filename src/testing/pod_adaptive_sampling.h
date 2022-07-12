@@ -74,9 +74,6 @@ public:
     /// Nearest neighbors of snapshots
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
-    /// Adaptation tolerance
-    double tolerance;
-
     /// Run test
     int run_test () const override;
 
