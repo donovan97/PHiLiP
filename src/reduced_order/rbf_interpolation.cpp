@@ -1,8 +1,11 @@
 #include "rbf_interpolation.h"
+#include <eigen/Eigen/Dense>
+#include <eigen/Eigen/LU>
+#include <iostream>
+#include "ROL_StdVector.hpp"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
-
 
 RBFInterpolation::RBFInterpolation(const MatrixXd& data_coordinates, const VectorXd& data_values, std::string kernel)
         : data_coordinates(data_coordinates)
@@ -54,7 +57,7 @@ double RBFInterpolation::radialBasisFunction(double r) const{
     }
 }
 
-VectorXd RBFInterpolation::evaluate(const RowVectorXd& evaluate_coordinate) const {
+double RBFInterpolation::evaluate(const RowVectorXd& evaluate_coordinate) const {
     long N = data_coordinates.rows();
 
     RowVectorXd s(1,N);
@@ -74,7 +77,7 @@ double RBFInterpolation::value(const ROL::Vector<double> &x, double &/*tol*/ ) {
     RowVectorXd evaluate_coordinate(2);
     evaluate_coordinate(0) = (*xp)[0];
     evaluate_coordinate(1) = (*xp)[1];
-    double val = evaluate(evaluate_coordinate).value();
+    double val = evaluate(evaluate_coordinate);
 
     //For optimization, return -abs(val) to consider only magnitude of error, not sign
     return -std::abs(val);

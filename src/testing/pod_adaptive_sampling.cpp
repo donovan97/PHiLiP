@@ -1,4 +1,22 @@
 #include "pod_adaptive_sampling.h"
+#include <iostream>
+#include <filesystem>
+#include "functional/functional.h"
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/vector_operation.h>
+#include "reduced_order/reduced_order_solution.h"
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include <cmath>
+#include "reduced_order/rbf_interpolation.h"
+#include "ROL_Algorithm.hpp"
+#include "ROL_LineSearchStep.hpp"
+#include "ROL_StatusTest.hpp"
+#include "ROL_Stream.hpp"
+#include "ROL_Bounds.hpp"
+#include "reduced_order/halton.h"
+#include "reduced_order/min_max_scaler.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -198,7 +216,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
         this->pcout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
-        double error = std::abs(rbf.evaluate(rom_scaled).value());
+        double error = std::abs(rbf.evaluate(rom_scaled));
         this->pcout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
             this->pcout << "RBF error is greater than current max error. Updating max error." << std::endl;
@@ -308,13 +326,8 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
-    //flow_solver->ode_solver->allocate_ode_system();
-    if(params.flow_solver_param.steady_state_polynomial_ramping){
-        flow_solver->ode_solver->initialize_steady_polynomial_ramping(params.flow_solver_param.poly_degree);
-    }
-    else{
-        flow_solver->ode_solver->steady_state();
-    }
+    flow_solver->ode_solver->allocate_ode_system();
+    flow_solver->run();
 
     this->pcout << "Done solving FOM." << std::endl;
     return flow_solver->dg->solution;

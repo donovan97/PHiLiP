@@ -1,11 +1,22 @@
 #include "pod_petrov_galerkin_ode_solver.h"
+#include "dg/dg.h"
+#include "ode_solver_base.h"
+#include "linear_solver/linear_solver.h"
+#include "reduced_order/pod_basis_base.h"
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+#include <EpetraExt_MatrixMatrix.h>
+#include <Epetra_Vector.h>
+#include <deal.II/lac/la_parallel_vector.h>
+#include <Epetra_LinearProblem.h>
+#include "Amesos.h"
+#include "Amesos_BaseSolver.h"
 
 namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::POD<dim>> pod)
-        : ImplicitODESolver<dim,real,MeshType>(dg_input)
+PODPetrovGalerkinODESolver<dim,real,MeshType>::PODPetrovGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+        : ODESolverBase<dim,real,MeshType>(dg_input)
         , pod(pod)
 {}
 
@@ -13,7 +24,6 @@ template <int dim, typename real, typename MeshType>
 int PODPetrovGalerkinODESolver<dim,real,MeshType>::steady_state ()
 {
     this->pcout << " Performing steady state analysis... " << std::endl;
-  
 
     this->current_iteration = 0;
 
@@ -196,7 +206,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
 template <int dim, typename real, typename MeshType>
 void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 {
-    this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
+    this->pcout << "Allocating ODE system..." << std::endl;
     reference_solution = this->dg->solution;
     reference_solution.import(pod->getReferenceState(), dealii::VectorOperation::values::insert);
 
@@ -205,7 +215,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
 
     const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     reduced_solution.reinit(pod->getPODBasis()->n());
-    reduced_solution *= 0;
     Epetra_Vector epetra_reduced_solution(Epetra_DataAccess::View, epetra_pod_basis.DomainMap(), reduced_solution.begin());
     Epetra_Vector epetra_initial_condition(Epetra_DataAccess::View, epetra_pod_basis.RangeMap(), initial_condition.begin());
 
@@ -219,7 +228,6 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->dg->solution = initial_condition_projected;
 
     reduced_solution_update.reinit(pod->getPODBasis()->n());
-    reduced_solution_update *= 0;
 }
 
 template class PODPetrovGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

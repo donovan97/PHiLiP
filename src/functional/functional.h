@@ -726,8 +726,8 @@ public:
             : PHiLiP::Functional<dim,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
-    template <typename real2>
     /// Templated volume integrand
+    template <typename real2>
     real2 evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
             const dealii::Point<dim,real2> &phys_coord,
@@ -743,6 +743,7 @@ public:
     {
         return evaluate_volume_integrand<>(physics, phys_coord, soln_at_q, soln_grad_at_q);
     }
+    
     /// Non-template functions to override the template classes
     FadFadType evaluate_volume_integrand(
             const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,

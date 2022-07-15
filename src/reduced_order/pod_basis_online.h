@@ -1,10 +1,6 @@
 #ifndef __POD_BASIS_ONLINE__
 #define __POD_BASIS_ONLINE__
 
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
@@ -12,23 +8,18 @@
 #include <deal.II/lac/vector_operation.h>
 #include "parameters/all_parameters.h"
 #include "dg/dg.h"
-#include "pod_interface.h"
+#include "pod_basis_base.h"
 #include <deal.II/lac/la_parallel_vector.h>
-#include <Teuchos_DefaultMpiComm.hpp>
-#include <EpetraExt_MatrixMatrix.h>
-#include <Epetra_CrsMatrix.h>
-#include <Epetra_Map.h>
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/SVD>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
-/// Class for Online Proper Orthogonal Decomposition basis
+/// Class for Online Proper Orthogonal Decomposition basis. This class takes snapshots on the fly and computes a POD basis for use in adaptive sampling.
 template <int dim>
-class OnlinePOD: public POD<dim>
+class OnlinePOD: public PODBase<dim>
 {
 public:
     /// Constructor

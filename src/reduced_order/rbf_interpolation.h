@@ -2,8 +2,6 @@
 #define __RBF_INTERPOLATION__
 
 #include <eigen/Eigen/Dense>
-#include <eigen/Eigen/LU>
-#include <iostream>
 #include "ROL_OptimizationProblem.hpp"
 #include "ROL_StdVector.hpp"
 
@@ -33,7 +31,7 @@ public:
     double radialBasisFunction(double r) const;
 
     /// Evaluate RBF
-    VectorXd evaluate(const RowVectorXd& evaluate_coordinate) const;
+    double evaluate(const RowVectorXd& evaluate_coordinate) const;
 
     /// RBF weights
     VectorXd weights;
