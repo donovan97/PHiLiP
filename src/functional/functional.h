@@ -755,6 +755,56 @@ public:
     }
 };
 
+/** Boundary integral for the Euler Gaussian bump.
+*  Pressure integral on the outlet.
+*/
+#if PHILIP_DIM==1
+    template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+    template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class OutletPressureIntegral : public Functional<dim,nstate,real,MeshType>
+{
+    using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
+    using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
+public:
+    OutletPressureIntegral(
+            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            const bool uses_solution_values = true,
+            const bool uses_solution_gradient = false);
+
+    template <typename real2>
+    real2 evaluate_boundary_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+            const unsigned int                                    boundary_id,
+            const dealii::Point<dim,real2> &                      phys_coord,
+            const dealii::Tensor<1,dim,real2> &                   normal,
+            const std::array<real2,nstate> &                      soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
+
+    real evaluate_boundary_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const unsigned int                                   boundary_id,
+            const dealii::Point<dim,real> &                      phys_coord,
+            const dealii::Tensor<1,dim,real> &                   normal,
+            const std::array<real,nstate> &                      soln_at_q,
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+
+    FadFadType evaluate_boundary_integrand(
+            const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+            const unsigned int                                         boundary_id,
+            const dealii::Point<dim,FadFadType> &                      phys_coord,
+            const dealii::Tensor<1,dim,FadFadType> &                   normal,
+            const std::array<FadFadType,nstate> &                      soln_at_q,
+            const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
+    {
+        return evaluate_boundary_integrand<>(physics, boundary_id, phys_coord, normal, soln_at_q, soln_grad_at_q);
+    }
+};
+
 /// Factory class to construct default functional types
 /** Functions based on PhiLiP::Paramters::FunctionalParam type. Enum choice is used
   * to setup one of the default volume or boundary norm functional types. Other custom 
