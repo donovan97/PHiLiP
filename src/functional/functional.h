@@ -758,11 +758,7 @@ public:
 /** Boundary integral for the Euler Gaussian bump.
 *  Pressure integral on the outlet.
 */
-#if PHILIP_DIM==1
-    template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
-#else
-    template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-#endif
+template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 class OutletPressureIntegral : public Functional<dim,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.

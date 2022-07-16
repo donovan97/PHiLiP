@@ -1317,6 +1317,10 @@ FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(
     }else if(functional_type == FunctionalTypeEnum::solution_integral) {
         std::shared_ptr< DGBaseState<dim,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double, MeshType>>(dg);
         return std::make_shared<SolutionIntegral<dim,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
+    }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {
+        if constexpr (dim==2 && nstate==dim+2){
+            return std::make_shared<OutletPressureIntegral<dim,nstate,real,MeshType>>(dg, true,false);
+        }
     }else{
         std::cout << "Invalid Functional." << std::endl;
     }
@@ -1427,8 +1431,6 @@ template class FunctionalFactory <PHILIP_DIM, 2, double, dealii::parallel::share
 template class FunctionalFactory <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class FunctionalFactory <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class FunctionalFactory <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class OutletPressureIntegral<PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM != 1
 // dealii::parallel::distributed::Triangulation<PHILIP_DIM>

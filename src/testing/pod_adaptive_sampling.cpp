@@ -397,6 +397,13 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
             parameters.euler_param.angle_of_attack = parameter(1); //radians!
         }
     }
+    else if (flow_type == FlowCaseEnum::gaussian_bump){
+        if(all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                parameters.euler_param.mach_inf = parameter(0);
+            }
+        }
+    }
     else{
         this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();

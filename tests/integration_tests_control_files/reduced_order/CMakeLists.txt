@@ -101,6 +101,16 @@ add_test(
 #)
 
 # =======================================
+# Euler Gaussian bump adaptive sampling
+# =======================================
+configure_file(euler_gaussian_bump_adaptive_sampling.prm euler_gaussian_bump_adaptive_sampling.prm COPYONLY)
+add_test(
+        NAME EULER_GAUSSIAN_BUMP_ADAPTIVE_SAMPLING
+        COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/euler_gaussian_bump_adaptive_sampling.prm
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+# =======================================
 # Default manufactured solution
 # =======================================
 configure_file(1d_burgers_rewienski_manufactured.prm 1d_burgers_rewienski_manufactured.prm COPYONLY)
