@@ -27,7 +27,10 @@ ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, ROMS
     pcout << "Creating ROM test location..." << std::endl;
     compute_FOM_to_initial_ROM_error();
     initial_rom_to_final_rom_error = 0;
-    compute_total_error();
+    iteration_count = 0;
+    total_error = fom_to_initial_rom_error;
+    minimum_error = std::abs(total_error);
+
     pcout << "ROM test location created. Error estimate updated." << std::endl;
 }
 
@@ -64,6 +67,7 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
 
+    iteration_count++;
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     const Epetra_CrsMatrix epetra_pod_basis = pod_updated->getPODBasis()->trilinos_matrix();
@@ -110,6 +114,9 @@ template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_total_error(){
     pcout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
+    if(std::abs(total_error) < std::abs(minimum_error)){
+        minimum_error = std::abs(total_error);
+    }
     pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 

@@ -42,6 +42,9 @@ public:
     /// Error from initial ROM to final ROM
     double initial_rom_to_final_rom_error;
 
+    int iteration_count;
+    double minimum_error;
+
     /// Total error
     double total_error;
 

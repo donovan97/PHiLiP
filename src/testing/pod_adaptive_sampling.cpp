@@ -289,6 +289,17 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
+
+    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
+        if(std::abs(it->second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance && std::abs(it->second->total_error) > std::abs(it->second->minimum_error) && it->second->iteration_count > 4){
+            this->pcout << "Recomputing point: " << it->first << std::endl;
+            ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
+            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
+            *it = std::make_pair(it->first, rom_location);
+        }
+    }
+
+    /*
     this->pcout << "Computing mean error: " << std::endl;
     //Compute mean error
     double error_sum = 0;
@@ -308,7 +319,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
             }
         }
     }
-
+    */
 
 
     /*
