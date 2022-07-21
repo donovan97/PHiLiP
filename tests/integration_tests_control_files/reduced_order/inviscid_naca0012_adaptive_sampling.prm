@@ -23,7 +23,17 @@ subsection euler
 end
 
 subsection linear solver
-  set linear_solver_type = direct
+#set linear_solver_type = direct
+  #set linear_solver_output = verbose
+  subsection gmres options
+    set ilut_atol                 = 1e-4
+    set ilut_rtol                 = 1.00001
+    set ilut_drop                 = 0.0
+    set ilut_fill                 = 10
+    set linear_residual_tolerance = 1e-04
+    set max_iterations            = 2000
+    set restart_number            = 300
+  end
 end
 
 subsection ODE solver

@@ -29,7 +29,11 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
 {
     configureParameterSpace();
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
-    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(flow_solver->dg);
+    const bool compute_dRdW = true;
+    flow_solver->dg->assemble_residual(compute_dRdW);
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+    system_matrix->copy_from(flow_solver->dg->system_matrix);
+    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
 }
 
@@ -269,8 +273,8 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
         }
 
         if(element == rom_locations.end() && snapshot_exists == false){
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, rom_solution);
+            ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
+            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, std::move(rom_solution));
             rom_locations.emplace_back(std::make_pair(midpoint, rom_location));
             if(abs(rom_location->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
                 error_greater_than_tolerance = true;
@@ -298,8 +302,8 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
             if(std::abs(it->second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
                 this->pcout << "Recomputing point: " << it->first << std::endl;
-                std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(it->first);
-                std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, rom_solution);
+                ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
+                std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
                 *it = std::make_pair(it->first, rom_location);
             }
         }
@@ -362,7 +366,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
 }
 
 template <int dim, int nstate>
-std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
+ProperOrthogonalDecomposition::ROMSolution<dim,nstate> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -377,14 +381,17 @@ std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
 
     // Create functional
     std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
+    functional->evaluate_functional( true, false, false);
 
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     system_matrix_transpose->copy_from(flow_solver->dg->system_matrix_transpose);
+    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side(flow_solver->dg->right_hand_side);
 
+    dealii::LinearAlgebra::distributed::Vector<double> gradient(functional->dIdw);
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     pod_basis->copy_from(*current_pod->getPODBasis());
 
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_shared<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(flow_solver->dg, system_matrix_transpose, *functional, pod_basis);
+    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> rom_solution = ProperOrthogonalDecomposition::ROMSolution<dim, nstate>(system_matrix_transpose, right_hand_side, pod_basis, gradient);
     this->pcout << "Done solving ROM." << std::endl;
     return rom_solution;
 }

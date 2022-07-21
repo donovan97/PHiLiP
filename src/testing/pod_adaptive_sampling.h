@@ -66,7 +66,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
     /// Solve reduced-order solution
-    std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
+    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> solveSnapshotROM(const RowVectorXd& parameter) const;
 
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;

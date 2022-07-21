@@ -1,15 +1,16 @@
 #include "reduced_order_solution.h"
 
+#include <utility>
+
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-ROMSolution<dim, nstate>::ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis)
-        : system_matrix_transpose(system_matrix_transpose)
-        , right_hand_side(dg_input->right_hand_side)
-        , basis(pod_basis)
-        , functional_value(functional_input.evaluate_functional( true, false, false))
-        , gradient(functional_input.dIdw)
+ROMSolution<dim, nstate>::ROMSolution(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix_transpose, dealii::LinearAlgebra::distributed::Vector<double> _right_hand_side, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _pod_basis, dealii::LinearAlgebra::distributed::Vector<double> _gradient)
+        : system_matrix_transpose(std::move(_system_matrix_transpose))
+        , right_hand_side(_right_hand_side)
+        , basis(std::move(_pod_basis))
+        , gradient(_gradient)
 {
 }
 

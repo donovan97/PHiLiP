@@ -19,7 +19,7 @@ class ROMSolution
 {
 public:
     /// Constructor
-    ROMSolution(std::shared_ptr<DGBase<dim,double>> &dg_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose, Functional<dim,nstate,double> &functional_input, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> pod_basis);
+    ROMSolution(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix_transpose, dealii::LinearAlgebra::distributed::Vector<double> _right_hand_side, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _pod_basis, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
 
     /// Destructor
     ~ROMSolution () {};
@@ -32,9 +32,6 @@ public:
 
     /// Stores POD basis on which solution was computed
     const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
-
-    /// Stores functional value
-    const double functional_value;
 
     /// Stores gradient
     const dealii::LinearAlgebra::distributed::Vector<double> gradient;

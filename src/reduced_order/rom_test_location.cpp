@@ -17,9 +17,9 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
-ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, std::shared_ptr<ROMSolution<dim, nstate>> rom_solution)
+ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, ROMSolution<dim, nstate> rom_solution)
         : parameter(parameter)
-        , rom_solution(rom_solution)
+        , rom_solution(std::move(rom_solution))
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
@@ -34,18 +34,29 @@ ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, std:
 template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->right_hand_side);
-    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side);
+    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution.gradient);
+    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution.right_hand_side);
 
-    gradient = rom_solution->gradient;
+    //gradient = rom_solution.gradient;
 
     Parameters::LinearSolverParam linear_solver_param;
-    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
-    solve_linear(*rom_solution->system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
+
+    linear_solver_param.max_iterations = 1000;
+    linear_solver_param.restart_number = 200;
+    linear_solver_param.linear_residual = 1e-17;
+    linear_solver_param.ilut_fill = 50;
+    linear_solver_param.ilut_drop = 1e-8;
+    linear_solver_param.ilut_atol = 1e-5;
+    linear_solver_param.ilut_rtol = 1.0+1e-2;
+    //linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+
+    //linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
+    solve_linear(*rom_solution.system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
 
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
-    fom_to_initial_rom_error = -(adjoint * rom_solution->right_hand_side);
+    fom_to_initial_rom_error = -(adjoint * rom_solution.right_hand_side);
 
     pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
@@ -56,12 +67,12 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     const Epetra_CrsMatrix epetra_pod_basis = pod_updated->getPODBasis()->trilinos_matrix();
-    const Epetra_CrsMatrix epetra_system_matrix_transpose = rom_solution->system_matrix_transpose->trilinos_matrix();
+    const Epetra_CrsMatrix epetra_system_matrix_transpose = rom_solution.system_matrix_transpose->trilinos_matrix();
 
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::View, epetra_system_matrix_transpose.DomainMap(), pod_updated->getPODBasis()->n());
     EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix_transpose, true, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
-    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), const_cast<double *>(rom_solution.gradient.begin()));
     Epetra_Vector epetra_reduced_gradient(epetra_pod_basis.DomainMap());
 
     epetra_pod_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
@@ -84,7 +95,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Solver->Solve();
 
     Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
-    Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
+    Epetra_Vector epetra_residual(Epetra_DataAccess::View, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution.right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
     //Compute dual weighted residual
