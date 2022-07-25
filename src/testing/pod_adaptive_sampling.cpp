@@ -103,6 +103,7 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
     std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
     unsigned int precision = 16;
     current_pod->dealiiSnapshotMatrix.print_formatted(solution_out_file, precision);
+    solution_out_file.close();
 
     for(auto parameters : snapshot_parameters.rowwise()){
         for(int i = 0 ; i < snapshot_parameters.cols() ; i++){
@@ -113,6 +114,7 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 
     std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    snapshot_table_file.close();
 
     std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
 
@@ -127,6 +129,7 @@ void AdaptiveSampling<dim, nstate>::outputErrors(int iteration) const{
 
     std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    rom_table_file.close();
 }
 
 template <int dim, int nstate>
@@ -313,7 +316,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
     this->pcout << "Mean error: " << error_mean << std::endl;
 
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        if(std::abs(it->second->total_error) > error_mean && it->second->iteration_count > 5){
+        if(std::abs(it->second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance && it->second->iteration_count > 2){
             this->pcout << "Recomputing point: " << it->first << std::endl;
             ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
