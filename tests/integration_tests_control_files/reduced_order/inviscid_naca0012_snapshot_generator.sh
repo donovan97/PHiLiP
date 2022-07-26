@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mach=(0.8)
+mach=(0.4)
 
 alpha=(1.25)
 
@@ -35,9 +35,9 @@ echo "    set ilut_atol                 = 1e-4" >> $file
 echo "    set ilut_rtol                 = 1.00001" >> $file
 echo "    set ilut_drop                 = 0.0" >> $file
 echo "    set ilut_fill                 = 10" >> $file
-echo "    set linear_residual_tolerance = 1e-13" >> $file
+echo "    set linear_residual_tolerance = 1e-04" >> $file
 echo "    set max_iterations            = 2000" >> $file
-echo "    set restart_number            = 200" >> $file
+echo "    set restart_number            = 300" >> $file
 echo "  end" >> $file
 echo "end" >> $file
 echo "" >> $file
@@ -55,15 +55,16 @@ echo "  set steady_state_final_solution_filename = ${mach[i]}_${alpha[i]}_soluti
 echo "end" >> $file
 echo "" >> $file
 echo "subsection grid refinement study" >> $file
-echo " set num_refinements = 1" >> $file
+echo " set num_refinements = 0" >> $file
 echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file
 echo "  set flow_case_type = naca0012" >> $file
-echo "  set poly_degree = 0" >> $file
+echo "  set poly_degree = 1" >> $file
 echo "  set steady_state = true" >> $file
+echo "  set steady_state_polynomial_ramping = true" >> $file
 echo "  subsection grid" >> $file
-echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref1" >> $file
+echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref3" >> $file
 echo "  end" >> $file
 echo "end" >> $file
 

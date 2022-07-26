@@ -71,6 +71,8 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             it->second->compute_total_error();
         }
 
+        updateNearestExistingROMs(max_error_params);
+
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
 
@@ -82,7 +84,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         }
          */
 
-        updateNearestExistingROMs(max_error_params);
+        //updateNearestExistingROMs(max_error_params);
 
         //Update max error
         max_error_params = getMaxErrorROM();
@@ -316,7 +318,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
     this->pcout << "Mean error: " << error_mean << std::endl;
 
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        if(std::abs(it->second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance && it->second->iteration_count > 2){
+        if(std::abs(it->second->total_error) > error_mean && it->second->initial_rom_to_final_rom_error < -1*all_parameters->reduced_order_param.adaptation_tolerance){
             this->pcout << "Recomputing point: " << it->first << std::endl;
             ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
