@@ -1,8 +1,8 @@
 #!/bin/bash
 
-mach=(0.4)
+mach=(0.3 0.3 0.55 0.55 0.425)
 
-alpha=(1.25)
+alpha=(0 3 0 3 1.5)
 
 for ((i = 0 ; i < ${#mach[@]} ; i++)); do
 
@@ -43,8 +43,8 @@ echo "end" >> $file
 echo "" >> $file
 echo "subsection ODE solver" >> $file
 echo "  set output_solution_every_x_steps = 1" >> $file
-echo "  set nonlinear_max_iterations            = 2000" >> $file
-echo "  set nonlinear_steady_residual_tolerance = 1e-15" >> $file
+echo "  set nonlinear_max_iterations            = 50" >> $file
+echo "  set nonlinear_steady_residual_tolerance = 1e-14" >> $file
 echo "  set ode_solver_type  = implicit" >> $file
 echo "  set initial_time_step = 1e3" >> $file
 echo "  set time_step_factor_residual = 15.0" >> $file
@@ -60,11 +60,11 @@ echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file
 echo "  set flow_case_type = naca0012" >> $file
-echo "  set poly_degree = 1" >> $file
+echo "  set poly_degree = 2" >> $file
 echo "  set steady_state = true" >> $file
 echo "  set steady_state_polynomial_ramping = true" >> $file
 echo "  subsection grid" >> $file
-echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref3" >> $file
+echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref2" >> $file
 echo "  end" >> $file
 echo "end" >> $file
 
