@@ -508,7 +508,7 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         if(all_parameters->reduced_order_param.parameter_names[1] == "alpha"){
             parameter2_range *= pi/180; //convert to radians
         }
-
+        /*
         //Place parameters at 4 corners and center
         snapshot_parameters.resize(5,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
@@ -516,7 +516,18 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
                                 parameter1_range[1], parameter2_range[1],
                                 parameter1_range[1], parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
-
+        */
+        //Place 9 parameters in a grid
+        snapshot_parameters.resize(9,2);
+        snapshot_parameters  << parameter1_range[0], parameter2_range[0],
+                                parameter1_range[0], parameter2_range[1],
+                                parameter1_range[1], parameter2_range[1],
+                                parameter1_range[1], parameter2_range[0],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], parameter2_range[1],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], parameter2_range[0],
+                                parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                parameter1_range[1], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
         snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
 
         double *seq = nullptr;

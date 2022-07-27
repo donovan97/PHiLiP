@@ -1,8 +1,8 @@
 #!/bin/bash
 
-mach=(0.3 0.3 0.55 0.55 0.425)
+mach=(0.425)
 
-alpha=(0 3 0 3 1.5)
+alpha=(1.5)
 
 for ((i = 0 ; i < ${#mach[@]} ; i++)); do
 
@@ -60,11 +60,11 @@ echo "end" >> $file
 echo "" >> $file
 echo "subsection flow_solver" >> $file
 echo "  set flow_case_type = naca0012" >> $file
-echo "  set poly_degree = 2" >> $file
+echo "  set poly_degree = 3" >> $file
 echo "  set steady_state = true" >> $file
 echo "  set steady_state_polynomial_ramping = true" >> $file
 echo "  subsection grid" >> $file
-echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref2" >> $file
+echo "    set input_mesh_filename = ../../meshes/naca0012_hopw_ref1" >> $file
 echo "  end" >> $file
 echo "end" >> $file
 
