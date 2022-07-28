@@ -71,18 +71,18 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             it->second->compute_total_error();
         }
 
-        updateNearestExistingROMs(max_error_params);
+        //updateNearestExistingROMs(max_error_params);
 
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
 
-        placeTriangulationROMs(rom_points);
+        bool error_greater_than_tolerance = placeTriangulationROMs(rom_points);
 
-        /*
+
         if(!error_greater_than_tolerance){
             updateNearestExistingROMs(max_error_params);
         }
-         */
+
 
         //updateNearestExistingROMs(max_error_params);
 
@@ -293,7 +293,7 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
+void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& parameter) const{
 
     /*
 
@@ -307,7 +307,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
     }
      */
 
-
+    /*
     this->pcout << "Computing mean error: " << std::endl;
     //Compute mean error
     double error_sum = 0;
@@ -326,10 +326,10 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         }
     }
 
+    */
 
 
 
-    /*
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -358,12 +358,12 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         pcout << "ROM point: " << rom_locations[index[i]].first << " Error: " << rom_locations[index[i]].second->total_error << std::endl;
         if(std::abs(rom_locations[index[i]].second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[i]].first);
+            ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(rom_locations[index[i]].first);
             std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(rom_locations[index[i]].first, rom_solution);
             rom_locations[index[i]] = std::make_pair(rom_locations[index[i]].first, rom_location);
         }
     }
-     */
+
 }
 
 template <int dim, int nstate>
