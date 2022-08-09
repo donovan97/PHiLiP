@@ -19,22 +19,22 @@ class ROMSolution
 {
 public:
     /// Constructor
-    ROMSolution(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix_transpose, dealii::LinearAlgebra::distributed::Vector<double> _right_hand_side, std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _pod_basis, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
+    ROMSolution(dealii::TrilinosWrappers::SparseMatrix _system_matrix_transpose, dealii::LinearAlgebra::distributed::Vector<double> _right_hand_side, dealii::TrilinosWrappers::SparseMatrix _pod_basis, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
 
     /// Destructor
     ~ROMSolution () {};
 
     /// Stores system matrix transpose
-    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix_transpose;
+    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
 
     /// Stores residual
-    const dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
+    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
 
     /// Stores POD basis on which solution was computed
-    const std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
+    dealii::TrilinosWrappers::SparseMatrix basis;
 
     /// Stores gradient
-    const dealii::LinearAlgebra::distributed::Vector<double> gradient;
+    dealii::LinearAlgebra::distributed::Vector<double> gradient;
 
 };
 

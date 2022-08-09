@@ -33,7 +33,7 @@ public:
     mutable MatrixXd snapshot_parameters;
 
     /// Vector of parameter-ROMTestLocation pairs
-    mutable std::vector<std::pair<RowVectorXd, std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>>> rom_locations;
+    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>> rom_locations;
 
     /// Maximum error
     mutable double max_error;
@@ -66,7 +66,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
     /// Solve reduced-order solution
-    ProperOrthogonalDecomposition::ROMSolution<dim,nstate> solveSnapshotROM(const RowVectorXd& parameter) const;
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
 
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;

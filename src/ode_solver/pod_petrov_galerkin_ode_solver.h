@@ -4,7 +4,6 @@
 #include "dg/dg.h"
 #include "ode_solver_base.h"
 #include "reduced_order/pod_basis_base.h"
-#include <deal.II/lac/la_parallel_vector.h>
 
 namespace PHiLiP {
 namespace ODE {
@@ -37,13 +36,13 @@ public:
     void allocate_ode_system () override;
 
     /// Reduced solution update given by the ODE solver
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
+    //dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
 
     /// Reference solution for consistency
-    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
+    //dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
 
     /// Reduced solution
-    dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
+    //dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
 };
 
 } // ODE namespace
