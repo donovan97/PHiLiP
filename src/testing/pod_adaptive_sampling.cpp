@@ -71,30 +71,14 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             it->get()->compute_total_error();
         }
 
-        //updateNearestExistingROMs(max_error_params);
-
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
 
-        //bool error_greater_than_tolerance = placeTriangulationROMs(rom_points);
-        placeTriangulationROMs(rom_points);
-        /*
-        for(auto midpoint : rom_points.rowwise()){
-            Parameters::AllParameters params = reinitParams(midpoint);
+        bool error_greater_than_tolerance = placeTriangulationROMs(rom_points);
 
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
-            //std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, std::move(rom_solution));
-            //rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution)));
+        if(!error_greater_than_tolerance){
+            updateNearestExistingROMs(max_error_params);
         }
-        */
-
-        //if(!error_greater_than_tolerance){
-        //    updateNearestExistingROMs(max_error_params);
-        //}
-
-
-        //updateNearestExistingROMs(max_error_params);
 
         //Update max error
         max_error_params = getMaxErrorROM();
@@ -178,8 +162,9 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
     //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 1.0);
     //parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
-    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Newton-Krylov");
-    parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
+    parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
+    parlist.sublist("Step").sublist("Line Search").sublist("Secant").set("Type","Limited-Memory BFGS");
+    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
     parlist.sublist("Status Test").set("Gradient Tolerance",1.e-10);
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
@@ -290,7 +275,6 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
         if(element == rom_locations.end() && snapshot_exists == false){
             //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            //std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(midpoint, std::move(rom_solution));
             rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution)));
             if(abs(rom_locations.back()->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
                 error_greater_than_tolerance = true;
@@ -369,12 +353,11 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         pcout << "ROM point: " << rom_locations[index[i]]->parameter << " Error: " << rom_locations[index[i]]->total_error << std::endl;
         if(std::abs(rom_locations[index[i]]->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(rom_locations[index[i]].parameter);
-            //ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate > rom_location = ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>(rom_locations[index[i]].parameter, rom_solution);
-            //rom_locations[index[i]] = std::move(rom_location);
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[i]]->parameter);
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(rom_locations[index[i]]->parameter, std::move(rom_solution));
+            rom_locations[index[i]] = std::move(rom_location);
         }
     }
-
 }
 
 template <int dim, int nstate>
@@ -412,17 +395,10 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
     std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
     functional->evaluate_functional( true, false, false);
 
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose = dealii::TrilinosWrappers::SparseMatrix();
-    system_matrix_transpose.copy_from(flow_solver->dg->system_matrix_transpose);
-    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side(flow_solver->dg->right_hand_side);
-
+    dealii::LinearAlgebra::distributed::Vector<double> solution(flow_solver->dg->solution);
     dealii::LinearAlgebra::distributed::Vector<double> gradient(functional->dIdw);
-    //dealii::LinearAlgebra::distributed::Vector<double> gradient(flow_solver->dg->right_hand_side);
-    //gradient*=0;
-    dealii::TrilinosWrappers::SparseMatrix pod_basis = dealii::TrilinosWrappers::SparseMatrix();
-    pod_basis.copy_from(*current_pod->getPODBasis());
 
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(std::move(system_matrix_transpose), right_hand_side, std::move(pod_basis), gradient);
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(params, solution, gradient);
     this->pcout << "Done solving ROM." << std::endl;
 
     return rom_solution;

@@ -12,6 +12,9 @@
 #include <Epetra_LinearProblem.h>
 #include "Amesos.h"
 #include <Amesos_Lapack.h>
+#include "flow_solver/flow_solver.h"
+#include "flow_solver/flow_solver_factory.h"
+#include <deal.II/base/parameter_handler.h>
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -38,10 +41,18 @@ template <int dim, int nstate>
 void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
 
-    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->gradient);
-    dealii::LinearAlgebra::distributed::Vector<double> adjoint(rom_solution->right_hand_side);
+    dealii::ParameterHandler dummy_handler;
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
+    flow_solver->dg->solution = rom_solution->solution;
+    const bool compute_dRdW = true;
+    flow_solver->dg->assemble_residual(compute_dRdW);
+    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose = dealii::TrilinosWrappers::SparseMatrix();
+    system_matrix_transpose.copy_from(flow_solver->dg->system_matrix_transpose);
 
-    //gradient = rom_solution.gradient;
+    // Initialize with same sparsity pattern as dg->right_hand_side
+    dealii::LinearAlgebra::distributed::Vector<double> adjoint(flow_solver->dg->right_hand_side);
+
+    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->gradient);
 
     Parameters::LinearSolverParam linear_solver_param;
 
@@ -56,11 +67,11 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
     //linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
-    solve_linear(rom_solution->system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
+    solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
 
     //Compute dual weighted residual
     fom_to_initial_rom_error = 0;
-    fom_to_initial_rom_error = -(adjoint * rom_solution->right_hand_side);
+    fom_to_initial_rom_error = -(adjoint * flow_solver->dg->right_hand_side);
 
     pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
@@ -72,8 +83,14 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
 
     pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
+    dealii::ParameterHandler dummy_handler;
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
+    flow_solver->dg->solution = rom_solution->solution;
+    const bool compute_dRdW = true;
+    flow_solver->dg->assemble_residual(compute_dRdW);
+
     const Epetra_CrsMatrix epetra_pod_basis = pod_updated->getPODBasis()->trilinos_matrix();
-    const Epetra_CrsMatrix epetra_system_matrix_transpose = rom_solution->system_matrix_transpose.trilinos_matrix();
+    const Epetra_CrsMatrix epetra_system_matrix_transpose = flow_solver->dg->system_matrix_transpose.trilinos_matrix();
 
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose.DomainMap(), pod_updated->getPODBasis()->n());
     EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix_transpose, true, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
@@ -99,7 +116,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Solver.Solve();
 
     Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
-    Epetra_Vector epetra_residual(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(rom_solution->right_hand_side.begin()));
+    Epetra_Vector epetra_residual(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(flow_solver->dg->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
     //Compute dual weighted residual
@@ -121,12 +138,20 @@ void ROMTestLocation<dim, nstate>::compute_total_error(){
     pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
-
+/*
 template class ROMTestLocation <PHILIP_DIM, 1>;
 template class ROMTestLocation <PHILIP_DIM, 2>;
 template class ROMTestLocation <PHILIP_DIM, 3>;
 template class ROMTestLocation <PHILIP_DIM, 4>;
 template class ROMTestLocation <PHILIP_DIM, 5>;
+*/
+#if PHILIP_DIM==1
+        template class ROMTestLocation<PHILIP_DIM, PHILIP_DIM>;
+#endif
+
+#if PHILIP_DIM!=1
+        template class ROMTestLocation<PHILIP_DIM, PHILIP_DIM+2>;
+#endif
 
 }
 }

@@ -34,15 +34,6 @@ public:
 
     /// Function to allocate the ODE system
     void allocate_ode_system () override;
-
-    /// Reduced solution update given by the ODE solver
-    //dealii::LinearAlgebra::distributed::Vector<double> reduced_solution_update;
-
-    /// Reference solution for consistency
-    //dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
-
-    /// Reduced solution
-    //dealii::LinearAlgebra::distributed::Vector<double> reduced_solution;
 };
 
 } // ODE namespace

@@ -19,19 +19,16 @@ class ROMSolution
 {
 public:
     /// Constructor
-    ROMSolution(dealii::TrilinosWrappers::SparseMatrix _system_matrix_transpose, dealii::LinearAlgebra::distributed::Vector<double> _right_hand_side, dealii::TrilinosWrappers::SparseMatrix _pod_basis, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
+    ROMSolution(Parameters::AllParameters params, dealii::LinearAlgebra::distributed::Vector<double> _solution, dealii::LinearAlgebra::distributed::Vector<double> _gradient);
 
     /// Destructor
     ~ROMSolution () {};
 
     /// Stores system matrix transpose
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose;
+    Parameters::AllParameters params;
 
-    /// Stores residual
-    dealii::LinearAlgebra::distributed::Vector<double> right_hand_side;
-
-    /// Stores POD basis on which solution was computed
-    dealii::TrilinosWrappers::SparseMatrix basis;
+    /// Stores solution
+    dealii::LinearAlgebra::distributed::Vector<double> solution;
 
     /// Stores gradient
     dealii::LinearAlgebra::distributed::Vector<double> gradient;
