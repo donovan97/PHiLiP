@@ -74,11 +74,12 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
 
-        bool error_greater_than_tolerance = placeTriangulationROMs(rom_points);
+        placeTriangulationROMs(rom_points);
 
-        if(!error_greater_than_tolerance){
-            updateNearestExistingROMs(max_error_params);
-        }
+        //if(!error_greater_than_tolerance){
+        //    updateNearestExistingROMs(max_error_params);
+        //}
+        updateNearestExistingROMs(max_error_params);
 
         //Update max error
         max_error_params = getMaxErrorROM();
@@ -288,43 +289,8 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& parameter) const{
-
-    /*
-
-    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        if(std::abs(it->second->total_error) > all_parameters->reduced_order_param.adaptation_tolerance && std::abs(it->second->total_error) > std::abs(it->second->minimum_error) && it->second->iteration_count > 4){
-            this->pcout << "Recomputing point: " << it->first << std::endl;
-            ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
-            *it = std::make_pair(it->first, rom_location);
-        }
-    }
-     */
-
-    /*
-    this->pcout << "Computing mean error: " << std::endl;
-    //Compute mean error
-    double error_sum = 0;
-    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        error_sum = error_sum + std::abs(it->second->total_error);
-    }
-    double error_mean = error_sum / rom_locations.size();
-    this->pcout << "Mean error: " << error_mean << std::endl;
-
-    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        if(std::abs(it->second->total_error) > error_mean && it->second->initial_rom_to_final_rom_error < -1*all_parameters->reduced_order_param.adaptation_tolerance){
-            this->pcout << "Recomputing point: " << it->first << std::endl;
-            ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(it->first);
-            std::shared_ptr<ProperOrthogonalDecomposition::ROMTestLocation < dim,nstate >> rom_location = std::make_shared<ProperOrthogonalDecomposition::ROMTestLocation < dim, nstate>>(it->first, std::move(rom_solution));
-            *it = std::make_pair(it->first, rom_location);
-        }
-    }
-
-    */
-
-
-
+void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
+    pcout << "Verifying ROM points for recomputation." << std::endl;
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -332,30 +298,34 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         rom_points.row(rom_points.rows()-1) = it->get()->parameter;
     }
 
-    //Get distances between newly added snapshots and ROM points
-    ProperOrthogonalDecomposition::MinMaxScaler scaler;
-    MatrixXd scaled_rom_params = scaler.fit_transform(rom_points);
-    RowVectorXd scaled_point = scaler.transform(parameter);
+    //Get distances between each ROM point and all other ROM points
+    for(auto point : rom_points.rowwise()) {
+        ProperOrthogonalDecomposition::MinMaxScaler scaler;
+        MatrixXd scaled_rom_points = scaler.fit_transform(rom_points);
+        RowVectorXd scaled_point = scaler.transform(point);
 
-    VectorXd distances = (scaled_rom_params.rowwise() - scaled_point).rowwise().squaredNorm();
+        VectorXd distances = (scaled_rom_points.rowwise() - scaled_point).rowwise().squaredNorm();
 
-    std::vector<int> index(distances.size());
-    std::iota(index.begin(), index.end(), 0);
+        std::vector<int> index(distances.size());
+        std::iota(index.begin(), index.end(), 0);
 
-    std::sort(index.begin(), index.end(),
-              [&](const int& a, const int& b) {
-                  return distances[a] < distances[b];
-              });
+        std::sort(index.begin(), index.end(),
+                  [&](const int &a, const int &b) {
+                      return distances[a] < distances[b];
+                  });
 
-    //For 2(n+1) nearest points, if error>tolerance, recompute adjoint 1
-    pcout << "Searching ROM points near: " << parameter << std::endl;
-    for(int i = 0 ; i < 6 ; i++){
-        pcout << "ROM point: " << rom_locations[index[i]]->parameter << " Error: " << rom_locations[index[i]]->total_error << std::endl;
-        if(std::abs(rom_locations[index[i]]->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
+        pcout << "Searching ROM points near: " << point << std::endl;
+        double local_mean_error = 0;
+        for (int i = 1; i < rom_points.cols() + 2; i++) {
+            //pcout << "ROM point: " << rom_locations[index[i]]->parameter << " Error: " << rom_locations[index[i]]->total_error << std::endl;
+            local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
+        }
+        local_mean_error = local_mean_error / (rom_points.cols() + 1);
+        if (std::abs(rom_locations[index[0]]->total_error) > 5 * local_mean_error) {
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[i]]->parameter);
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(rom_locations[index[i]]->parameter, std::move(rom_solution));
-            rom_locations[index[i]] = std::move(rom_location);
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));
+            rom_locations[index[0]] = std::move(rom_location);
         }
     }
 }
