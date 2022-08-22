@@ -163,7 +163,7 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
     const double step_reduction = 0.5;
     const int maxline = 10;
     const double reduction_tolerance_1 = 1.0;
-    //const double reduction_tolerance_2 = 2.0;
+    const double reduction_tolerance_2 = 2.0;
 
     double initial_residual;
     epetra_reduced_rhs.Norm2(&initial_residual);
@@ -194,11 +194,87 @@ void PODPetrovGalerkinODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, c
         new_residual /= this->dg->right_hand_side.size();
         this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
     }
-    this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
 
-    if(iline == maxline && new_residual > initial_residual){
-        this->pcout << "No decrease in residual. Maximum line search interations reached." << std::endl;
+
+    if (iline == maxline) {
+        step_length = 1.0;
+        this->pcout << " Line Search (Case 2): Increase nonlinear residual tolerance by a factor " << std::endl;
+        this->pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
+        epetra_solution.Update(1, epetra_solution_update, 1);
+        this->dg->assemble_residual();
+        epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+        epetra_reduced_rhs.Norm2(&new_residual);
+        new_residual /= this->dg->right_hand_side.size();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            Epetra_Vector epetra_linesearch_reduced_solution_update(epetra_reduced_solution_update);
+            epetra_linesearch_reduced_solution_update.Scale(step_length);
+            epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
+            epetra_solution.Update(1, epetra_solution_update, 1);
+            this->dg->assemble_residual();
+            epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+            epetra_reduced_rhs.Norm2(&new_residual);
+            new_residual /= this->dg->right_hand_side.size();
+            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
     }
+
+    if (iline == maxline) {
+        this->pcout << " Line Search (Case 3): Reverse Search Direction " << std::endl;
+        step_length = -1.0;
+        epetra_solution.Update(-1, epetra_solution_update, 1);
+        this->dg->assemble_residual();
+        epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+        epetra_reduced_rhs.Norm2(&new_residual);
+        new_residual /= this->dg->right_hand_side.size();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            Epetra_Vector epetra_linesearch_reduced_solution_update(epetra_reduced_solution_update);
+            epetra_linesearch_reduced_solution_update.Scale(step_length);
+            epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
+            epetra_solution.Update(1, epetra_solution_update, 1);
+            this->dg->assemble_residual();
+            epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+            epetra_reduced_rhs.Norm2(&new_residual);
+            new_residual /= this->dg->right_hand_side.size();
+            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
+    }
+
+    if (iline == maxline) {
+        this->pcout << " Line Search (Case 4): Reverse Search Direction AND Increase nonlinear residual tolerance by a factor " << std::endl;
+        step_length = -1.0;
+        epetra_solution.Update(-1, epetra_solution_update, 1);
+        this->dg->assemble_residual();
+        epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+        epetra_reduced_rhs.Norm2(&new_residual);
+        new_residual /= this->dg->right_hand_side.size();
+        this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        for (iline = 0; iline < maxline && new_residual > initial_residual * reduction_tolerance_2; ++iline) {
+            step_length = step_length * step_reduction;
+            this->dg->solution = old_solution;
+            Epetra_Vector epetra_linesearch_reduced_solution_update(epetra_reduced_solution_update);
+            epetra_linesearch_reduced_solution_update.Scale(step_length);
+            epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
+            epetra_solution.Update(1, epetra_solution_update, 1);
+            this->dg->assemble_residual();
+            epetra_petrov_galerkin_basis.Multiply(true, epetra_right_hand_side, epetra_reduced_rhs);
+            epetra_reduced_rhs.Norm2(&new_residual);
+            new_residual /= this->dg->right_hand_side.size();
+            this->pcout << " Step length " << step_length << " . Old residual: " << initial_residual << " New residual: " << new_residual << std::endl;
+        }
+    }
+
+    if(iline == maxline){
+        this->pcout << "Line search failed. Returning to old solution." << std::endl;
+        this->dg->solution = old_solution;
+    }
+
+    this->pcout << "Full-order residual norm: " << this->dg->get_residual_l2norm() << std::endl;
 
     this->residual_norm = new_residual;
 

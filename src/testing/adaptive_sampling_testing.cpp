@@ -34,9 +34,9 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 
 */
 
-    RowVectorXd params_1 {{0.300000,0.55, 0.425}};
+    RowVectorXd params_1 {{2.0}};
     //INPUT AS RADIANS
-    RowVectorXd params_2 {{0, 0.0523598775598299, 0.026179938779914}};
+    RowVectorXd params_2 {{0.0325}};
     std::cout << params_1 << std::endl;
     std::cout << params_2 << std::endl;
 

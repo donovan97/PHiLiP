@@ -290,6 +290,7 @@ bool AdaptiveSampling<dim, nstate>::placeTriangulationROMs(const MatrixXd& rom_p
 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
+
     pcout << "Verifying ROM points for recomputation." << std::endl;
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
@@ -321,7 +322,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
             local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
         }
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
-        if (std::abs(rom_locations[index[0]]->total_error) > 5 * local_mean_error) {
+        if ((std::abs(rom_locations[index[0]]->total_error) > 5 * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < 1/5 * local_mean_error)) {
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));
