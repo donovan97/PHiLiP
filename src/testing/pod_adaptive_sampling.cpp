@@ -71,6 +71,8 @@ int AdaptiveSampling<dim, nstate>::run_test() const
             it->get()->compute_total_error();
         }
 
+        updateNearestExistingROMs(max_error_params);
+
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         pcout << rom_points << std::endl;
 
@@ -79,7 +81,7 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         //if(!error_greater_than_tolerance){
         //    updateNearestExistingROMs(max_error_params);
         //}
-        updateNearestExistingROMs(max_error_params);
+        //updateNearestExistingROMs(max_error_params);
 
         //Update max error
         max_error_params = getMaxErrorROM();
