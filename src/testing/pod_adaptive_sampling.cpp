@@ -297,7 +297,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        rom_points.conservativeResize(rom_points.rows()+1, 2);
+        rom_points.conservativeResize(rom_points.rows()+1, it->get()->parameter.cols());
         rom_points.row(rom_points.rows()-1) = it->get()->parameter;
     }
 
