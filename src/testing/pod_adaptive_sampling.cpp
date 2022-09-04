@@ -473,11 +473,15 @@ void AdaptiveSampling<dim, nstate>::configureParameterSpace() const
         }
 
         //Place parameters at 4 corners and center
-        snapshot_parameters.resize(5,2);
+        snapshot_parameters.resize(9,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
                                 parameter1_range[0], parameter2_range[1],
                                 parameter1_range[1], parameter2_range[1],
                                 parameter1_range[1], parameter2_range[0],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], parameter2_range[0],
+                                0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], parameter2_range[1],
+                                parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
+                                parameter1_range[1], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
         /*

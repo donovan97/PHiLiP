@@ -66,6 +66,6 @@ subsection functional
 end
 
 subsection reduced order
-  set path_to_search = ./post_mem_leak/
+  set path_to_search = ./naca0012_transonic_lhs
   set reduced_residual_tolerance = 1e-14
 end
