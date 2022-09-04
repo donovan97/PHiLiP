@@ -226,7 +226,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         dealii::LinearAlgebra::distributed::Vector<double> standard_solution(flow_solver->dg->solution);
         dealii::LinearAlgebra::distributed::Vector<double> implicit_solution(flow_solver_implicit->dg->solution);
 
-        double standard_error = ((standard_solution-=implicit_solution).l2_norm()/implicit_solution.l2_norm());
+        double standard_error = (standard_solution-=implicit_solution).l2_norm();
         double standard_func_error = functional->evaluate_functional(false,false) - functional_implicit->evaluate_functional(false,false);
 
         pcout << "State error: " << std::setprecision(15) << standard_error << std::setprecision(6) << std::endl;
