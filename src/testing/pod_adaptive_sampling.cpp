@@ -119,6 +119,8 @@ void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
         }
         rom_table->add_value("ROM_errors", it->get()->total_error);
         rom_table->set_precision("ROM_errors", 16);
+        rom_table->add_value("Num_recomputes", it->get()->num_recomputes);
+        rom_table->set_precision("Num_recomputes", 3);
     }
 
     std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
@@ -320,9 +322,12 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
         if ((std::abs(rom_locations[index[0]]->total_error) > all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < (1/all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
             pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
+            int recomputes = rom_locations[index[0]]->num_recomputes;
+            pcout << recomputes << std::endl;
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));
             rom_locations[index[0]] = std::move(rom_location);
+            rom_locations[index[0]]->num_recomputes = recomputes + 1;
         }
     }
 }

@@ -92,13 +92,13 @@ add_test(
 # =======================================
 # Inviscid NACA0012 Snapshot Generator
 # =======================================
-#configure_file(inviscid_naca0012_snapshot_generator.sh inviscid_naca0012_snapshot_generator.sh COPYONLY)
-#add_test(
-#        NAME INVISCID_NACA0012_GENERATE_SNAPSHOTS
-#        COMMAND bash -c
-#        "./inviscid_naca0012_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
-#        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(inviscid_naca0012_snapshot_generator.sh inviscid_naca0012_snapshot_generator.sh COPYONLY)
+add_test(
+        NAME INVISCID_NACA0012_GENERATE_SNAPSHOTS
+         COMMAND bash -c
+        "./inviscid_naca0012_snapshot_generator.sh ${EXECUTABLE_OUTPUT_PATH}"
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 # =======================================
 # Burgers Rewienski manufactured solution

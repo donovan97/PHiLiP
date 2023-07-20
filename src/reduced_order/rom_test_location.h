@@ -45,6 +45,8 @@ public:
     /// Total error
     double total_error;
 
+    int num_recomputes;
+
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.
 

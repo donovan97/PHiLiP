@@ -33,6 +33,7 @@ ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, std:
     total_error = fom_to_initial_rom_error;
 
     pcout << "ROM test location created. Error estimate updated." << std::endl;
+    num_recomputes = 0;
 }
 
 template <int dim, int nstate>
